@@ -210,3 +210,23 @@ def format_response(
 
     full_text = "\n\n".join(sections)
     return split_message(full_text, max_len=4096)
+
+
+def format_tech_response(
+    transcription: TranscriptionResult,
+    share_url: Optional[str] = None,
+) -> list[str]:
+    """Format an immediate concise notification for Tech Reels with direct web link."""
+    lines = [
+        "⚡ **REEL TECH & OUTIL DÉTECTÉ**",
+        "",
+        f"📌 **Résumé** : {transcription.summary or 'Outil / Repo identifié.'}",
+        "",
+        "💻 **Audit Machine (i5 / 24 Go / Win11) & Cyberdéfense disponible**.",
+        "Ce Reel a été identifié comme présentant un outil, repo ou prompt.",
+    ]
+    if share_url:
+        lines.append(f"\n👉 **[Ouvrir l'audit 1-clic (ChatGPT, Claude, Gemini)]({share_url})**")
+
+    return split_message("\n".join(lines), max_len=4096)
+
