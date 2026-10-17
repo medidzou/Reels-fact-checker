@@ -232,7 +232,12 @@ def process_url_job(job_mgr: JobManager, job_id: str, url: str) -> None:
                 return
 
             job_mgr.update_job(job_id, status="processing", stage="factchecking")
-            factcheck = fact_check_claims(transcription.claims, transcription.is_tech)
+            factcheck = fact_check_claims(
+                transcription.claims,
+                transcription.is_tech,
+                on_stage_change=lambda stg: job_mgr.update_job(job_id, status="processing", stage=stg),
+            )
+            job_mgr.update_job(job_id, status="processing", stage="formatting")
 
             result = _build_result_dict(transcription, factcheck)
             job_mgr.update_job(job_id, status="completed", stage="completed", result=result)
@@ -272,7 +277,12 @@ def process_upload_job(
                 return
 
             job_mgr.update_job(job_id, status="processing", stage="factchecking")
-            factcheck = fact_check_claims(transcription.claims, transcription.is_tech)
+            factcheck = fact_check_claims(
+                transcription.claims,
+                transcription.is_tech,
+                on_stage_change=lambda stg: job_mgr.update_job(job_id, status="processing", stage=stg),
+            )
+            job_mgr.update_job(job_id, status="processing", stage="formatting")
 
             result = _build_result_dict(transcription, factcheck)
             job_mgr.update_job(job_id, status="completed", stage="completed", result=result)

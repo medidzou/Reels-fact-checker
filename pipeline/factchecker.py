@@ -1,11 +1,12 @@
 """Fact-check engine combining DuckDuckGo search with Google Gemini synthesis."""
 
+import concurrent.futures
 from dataclasses import dataclass, field
 import json
 import logging
 import os
 import re
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +138,7 @@ def search_claim(claim: str, ddgs_client: Optional[Any] = None) -> str:
             except ImportError:
                 from ddgs import DDGS
 
-            ddgs_client = DDGS()
+            ddgs_client = DDGS(timeout=4)
 
         raw_results = ddgs_client.text(clean_claim, max_results=3)
         if raw_results:
@@ -166,7 +167,7 @@ def search_claim(claim: str, ddgs_client: Optional[Any] = None) -> str:
                 wiki_url,
                 headers={"User-Agent": "ReelCheckBot/1.0 (https://t.me/ReelsFactCheckBot; contact@reelcheck.app)"},
             )
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with urllib.request.urlopen(req, timeout=3) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 search_results = data.get("query", {}).get("search", [])
                 if search_results:
@@ -403,6 +404,8 @@ def fact_check_claims(
     gemini_client: Optional[Any] = None,
     ddgs_client: Optional[Any] = None,
     groq_client: Optional[Any] = None,
+    on_stage_change: Optional[Callable[[str], None]] = None,
+    max_claims: int = 4,
 ) -> FactCheckResult:
     """Orchestrate search, verdict synthesis, scoring, and optional action kit generation.
 
@@ -412,27 +415,42 @@ def fact_check_claims(
         gemini_client: Optional Gemini client instance.
         ddgs_client: Optional DuckDuckGo search client.
         groq_client: Optional Groq client instance for fallback.
+        on_stage_change: Optional callback invoked when stage progresses (e.g. 'formatting').
+        max_claims: Maximum number of claims to verify to bound latency (default 4).
 
     Returns:
         FactCheckResult containing verdicts, reliability score (0-10), and action kit.
     """
-    cleaned_claims = [c.strip() for c in claims if c and c.strip()]
+    cleaned_claims = [c.strip() for c in claims if c and c.strip()][:max_claims]
     if not cleaned_claims:
         return FactCheckResult(verdicts=[], reliability_score=10, action_kit=None)
 
-    verdicts: list[Verdict] = []
-    search_contexts: list[str] = []
-
-    for claim in cleaned_claims:
+    def _process_single_claim(claim: str) -> tuple[Verdict, str]:
         context = search_claim(claim, ddgs_client=ddgs_client)
-        search_contexts.append(context)
         verdict = synthesize_verdict(
             claim,
             context,
             gemini_client=gemini_client,
             groq_client=groq_client,
         )
-        verdicts.append(verdict)
+        return verdict, context
+
+    # Run in parallel when multiple claims and not using a mock ddgs_client
+    max_workers = min(4, len(cleaned_claims))
+    if max_workers > 1 and ddgs_client is None:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            claim_results = list(executor.map(_process_single_claim, cleaned_claims))
+    else:
+        claim_results = [_process_single_claim(c) for c in cleaned_claims]
+
+    verdicts = [v for v, _ in claim_results]
+    search_contexts = [ctx for _, ctx in claim_results]
+
+    if on_stage_change:
+        try:
+            on_stage_change("formatting")
+        except Exception as stage_err:
+            logger.debug("on_stage_change callback error: %s", stage_err)
 
     # Compute reliability score (0 to 10 scale)
     score_weights = {

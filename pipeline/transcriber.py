@@ -16,7 +16,7 @@ EXTRACTION_PROMPT = """Analyze this audio recording from an Instagram Reel.
 Perform the following tasks:
 1. Provide an accurate, verbatim transcript of everything spoken in the audio.
 2. Provide a concise summary of the content (3 to 5 lines).
-3. Identify and extract ONLY verifiable factual claims (e.g. statistics, percentages, scientific studies, historical events, named facts, technical specs). Do NOT include subjective opinions, feelings, or vague advice.
+3. Identify and extract ONLY verifiable factual claims (e.g. statistics, percentages, scientific studies, historical events, named facts, technical specs). Extract up to the 3 or 4 most important claims. Do NOT include subjective opinions, feelings, or vague advice.
 4. Determine whether the video is technical/AI/software-related (true or false).
 
 Output your response using EXACTLY this format:

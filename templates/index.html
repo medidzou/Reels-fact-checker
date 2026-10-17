@@ -675,39 +675,54 @@
       }
 
       function updateStageUI(stage) {
-        const steps = [
-          { id: 'step-download', label: 'Téléchargement du flux média', stages: ['downloading', 'transcribing', 'factchecking', 'formatting', 'completed'] },
-          { id: 'step-transcribe', label: 'Transcription audio & isolation des claims', stages: ['transcribing', 'factchecking', 'formatting', 'completed'] },
-          { id: 'step-factcheck', label: 'Recoupement avec les sources web en temps réel', stages: ['factchecking', 'formatting', 'completed'] },
-          { id: 'step-verdict', label: 'Synthèse critique & calcul du score de confiance', stages: ['formatting', 'completed'] }
-        ];
+        const stageOrder = {
+          'queued': 1,
+          'downloading': 1,
+          'transcribing': 2,
+          'factchecking': 3,
+          'formatting': 4,
+          'completed': 5
+        };
+
+        const currentStepNum = stageOrder[stage] || 1;
 
         const stageLabels = {
-          'queued': 'Mise en file d\'attente de l\'analyse...',
-          'downloading': 'Téléchargement du Reel Instagram en cours...',
-          'transcribing': 'Transcription audio via Whisper / Gemini...',
-          'factchecking': 'Vérification des affirmations sur le Web...',
-          'formatting': 'Finalisation du rapport...',
+          'queued': "Mise en file d'attente de l'analyse...",
+          'downloading': 'Téléchargement du flux média en cours...',
+          'transcribing': 'Transcription audio & extraction des affirmations...',
+          'factchecking': 'Recoupement simultané avec les sources web...',
+          'formatting': 'Synthèse critique & calcul du score de confiance...',
           'completed': 'Analyse terminée avec succès.'
         };
 
         progressStageText.textContent = stageLabels[stage] || `Traitement : ${stage}`;
 
-        steps.forEach((step, idx) => {
-          const el = document.getElementById(step.id);
+        const stepIds = ['step-download', 'step-transcribe', 'step-factcheck', 'step-verdict'];
+
+        stepIds.forEach((id, idx) => {
+          const stepNum = idx + 1;
+          const el = document.getElementById(id);
           if (!el) return;
           const indicator = el.querySelector('.step-indicator');
           const label = el.querySelector('.step-label');
 
-          if (step.stages.includes(stage)) {
-            el.className = 'flex items-center gap-3 text-slate-200';
-            indicator.className = 'step-indicator w-4 h-4 rounded-full bg-white text-black font-mono font-bold flex items-center justify-center text-[10px]';
+          if (stepNum < currentStepNum || stage === 'completed') {
+            // Completed step
+            el.className = 'flex items-center gap-3 text-slate-200 transition-colors';
+            indicator.className = 'step-indicator w-4 h-4 rounded-full bg-emerald-400 text-black font-mono font-bold flex items-center justify-center text-[10px] shadow-sm';
             indicator.textContent = '✓';
             label.className = 'step-label text-slate-200';
+          } else if (stepNum === currentStepNum) {
+            // Currently active step
+            el.className = 'flex items-center gap-3 text-white transition-colors';
+            indicator.className = 'step-indicator w-4 h-4 rounded-full border-2 border-emerald-400 text-emerald-400 font-mono font-bold flex items-center justify-center text-[10px] status-dot-pulse';
+            indicator.textContent = `${stepNum}`;
+            label.className = 'step-label text-white font-medium';
           } else {
-            el.className = 'flex items-center gap-3 text-slate-500';
-            indicator.className = 'step-indicator w-4 h-4 rounded-full border border-hairline flex items-center justify-center text-[10px]';
-            indicator.textContent = `${idx + 1}`;
+            // Pending step
+            el.className = 'flex items-center gap-3 text-slate-500 transition-colors';
+            indicator.className = 'step-indicator w-4 h-4 rounded-full border border-hairline flex items-center justify-center text-[10px] text-slate-500';
+            indicator.textContent = `${stepNum}`;
             label.className = 'step-label text-slate-500';
           }
         });
