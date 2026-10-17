@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import os
-from typing import Optional
+from typing import Any, Optional
 
 from flask import Flask, jsonify, request
 import telegram
@@ -11,10 +11,42 @@ from telegram import Update
 
 from bot.handlers import setup_application, setup_bot
 
+import threading
+
 logger = logging.getLogger(__name__)
 
 
-def setup_webhook(token: str, webhook_url: str) -> bool:
+class AsyncWorker:
+    """Dedicated asyncio worker thread with a persistent event loop.
+
+    Ensures python-telegram-bot's ExtBot and HTTPXRequest maintain active,
+    unclosed connection pools across multiple webhook requests without
+    hitting 'RuntimeError: Event loop is closed'.
+    """
+
+    def __init__(self) -> None:
+        self.loop = asyncio.new_event_loop()
+        self.thread = threading.Thread(
+            target=self._run_loop, daemon=True, name="AsyncTelegramWorker"
+        )
+        self.thread.start()
+
+    def _run_loop(self) -> None:
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_forever()
+
+    def run(self, coro: Any) -> Any:
+        future = asyncio.run_coroutine_threadsafe(coro, self.loop)
+        return future.result()
+
+    def stop(self) -> None:
+        if self.loop.is_running():
+            self.loop.call_soon_threadsafe(self.loop.stop)
+
+
+def setup_webhook(
+    token: str, webhook_url: str, worker: Optional[AsyncWorker] = None
+) -> bool:
     """Remove previous Telegram webhook and set new webhook URL."""
     if not token or not webhook_url:
         logger.info("Webhook setup skipped: token or WEBHOOK_URL not configured")
@@ -37,7 +69,10 @@ def setup_webhook(token: str, webhook_url: str) -> bool:
             await bot.shutdown()
 
     try:
-        asyncio.run(_configure())
+        if worker:
+            worker.run(_configure())
+        else:
+            asyncio.run(_configure())
         return True
     except Exception as exc:
         logger.warning("Failed to configure webhook with Telegram: %s", exc)
@@ -55,6 +90,10 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
     render_url = os.environ.get("RENDER_EXTERNAL_URL", "").strip()
     webhook_url = render_url if render_url else os.environ.get("WEBHOOK_URL", "").strip()
 
+    # Dedicated worker with persistent asyncio event loop
+    worker = AsyncWorker()
+    app.config["ASYNC_WORKER"] = worker
+
     # Configure Telegram bot & application
     tg_app = None
     bot = None
@@ -62,6 +101,12 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
         try:
             tg_app = setup_application(token)
             bot = tg_app.bot
+
+            async def _init_app() -> None:
+                await tg_app.initialize()
+                await tg_app.start()
+
+            worker.run(_init_app())
         except Exception as exc:
             logger.warning("Failed to initialize Telegram application: %s", exc)
 
@@ -71,7 +116,7 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
     # Remove old webhook and set new one on startup (if not testing)
     if not app.config.get("TESTING") and token and webhook_url:
         logger.info("Initializing Telegram webhook registration for: %s", webhook_url)
-        setup_webhook(token, webhook_url)
+        setup_webhook(token, webhook_url, worker=worker)
 
     @app.route("/", methods=["GET"])
     @app.route("/health", methods=["GET"])
@@ -107,13 +152,11 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
 
         if current_tg_app:
             try:
-                # Ensure application and bot are marked initialized
-                if not getattr(current_tg_app, "_initialized", False):
-                    current_tg_app._initialized = True
-                    if hasattr(current_tg_app, "bot") and not getattr(current_tg_app.bot, "_initialized", False):
-                        current_tg_app.bot._initialized = True
-
-                asyncio.run(current_tg_app.process_update(update))
+                worker_instance = app.config.get("ASYNC_WORKER")
+                if worker_instance:
+                    worker_instance.run(current_tg_app.process_update(update))
+                else:
+                    asyncio.run(current_tg_app.process_update(update))
             except Exception as exc:
                 logger.error("Error processing Telegram update: %s", exc)
                 return jsonify({"status": "error", "error": str(exc)}), 500

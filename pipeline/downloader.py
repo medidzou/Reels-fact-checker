@@ -128,30 +128,53 @@ def download_reel_audio(url: str, output_dir: str) -> DownloadResult:
                         logger.info("Found downloaded media file: %s", candidate)
                         return DownloadResult(audio_path=candidate, success=True, error=None)
 
-        # Check if shortcode contains ambiguous characters (e.g. I vs l)
+        # Check if shortcode contains ambiguous characters (e.g. I vs l) or try alternate /p/ endpoint
         import re
 
-        m = re.search(r"/(?:reel|reels|p)/([a-zA-Z0-9_-]+)", url)
+        m = re.search(r"/(?:reel|reels|p|tv)/([a-zA-Z0-9_-]+)", url)
         if m:
             orig_code = m.group(1)
-            for alt_code in _generate_code_variations(orig_code):
-                alt_url = url.replace(orig_code, alt_code)
-                try:
-                    logger.info("Attempting shortcode disambiguation: %s -> %s", orig_code, alt_code)
-                    with yt_dlp.YoutubeDL(ydl_opts) as alt_ydl:
-                        alt_info = alt_ydl.extract_info(alt_url, download=True)
-                    alt_id = alt_info.get("id") if isinstance(alt_info, dict) else alt_code
-                    alt_mp3 = os.path.join(output_dir, f"{alt_id}.mp3")
-                    if os.path.exists(alt_mp3):
-                        logger.info("Successfully recovered audio with disambiguated URL: %s", alt_url)
-                        return DownloadResult(audio_path=alt_mp3, success=True, error=None)
-                    for fname in os.listdir(output_dir):
-                        if fname.startswith(str(alt_id)):
-                            candidate = os.path.join(output_dir, fname)
-                            if os.path.isfile(candidate) and os.path.getsize(candidate) > 0:
-                                return DownloadResult(audio_path=candidate, success=True, error=None)
-                except Exception as alt_exc:
-                    logger.debug("Disambiguation %s failed: %s", alt_code, alt_exc)
+            codes_to_try = [orig_code] + _generate_code_variations(orig_code)
+            urls_to_try: list[str] = []
+            for c in codes_to_try:
+                urls_to_try.append(f"https://www.instagram.com/reel/{c}/")
+                urls_to_try.append(f"https://www.instagram.com/p/{c}/")
+
+            # Remove original input URL if already tried
+            candidate_urls = [u for u in urls_to_try if u != url]
+
+            # Options fallback: first with audio postprocessor, then direct best without postprocessors
+            fallback_opts_list = [
+                ydl_opts,
+                {
+                    "format": "best",
+                    "outtmpl": os.path.join(output_dir, "%(id)s.%(ext)s"),
+                    "http_headers": {"User-Agent": MOBILE_USER_AGENT},
+                    "max_filesize": MAX_FILESIZE_BYTES,
+                    "quiet": True,
+                    "no_warnings": True,
+                },
+            ]
+
+            for alt_url in candidate_urls:
+                for opts in fallback_opts_list:
+                    try:
+                        logger.info("Attempting Instagram download fallback: %s", alt_url)
+                        with yt_dlp.YoutubeDL(opts) as alt_ydl:
+                            alt_info = alt_ydl.extract_info(alt_url, download=True)
+                        alt_id = alt_info.get("id") if isinstance(alt_info, dict) else orig_code
+                        alt_mp3 = os.path.join(output_dir, f"{alt_id}.mp3")
+                        if os.path.exists(alt_mp3) and os.path.getsize(alt_mp3) > 0:
+                            logger.info("Successfully recovered audio with fallback: %s", alt_url)
+                            return DownloadResult(audio_path=alt_mp3, success=True, error=None)
+                        for fname in os.listdir(output_dir):
+                            if not fname.endswith((".part", ".ytdl")):
+                                candidate = os.path.join(output_dir, fname)
+                                if os.path.isfile(candidate) and os.path.getsize(candidate) > 0:
+                                    logger.info("Found downloaded fallback media: %s", candidate)
+                                    return DownloadResult(audio_path=candidate, success=True, error=None)
+                    except Exception as alt_exc:
+                        logger.debug("Fallback %s failed: %s", alt_url, alt_exc)
 
         logger.error(f"Error downloading reel audio from {url}: {e}", exc_info=True)
         return DownloadResult(

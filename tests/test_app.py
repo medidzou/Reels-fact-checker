@@ -96,3 +96,20 @@ def test_setup_webhook_missing_args():
     """Test setup_webhook returns False when args are missing."""
     assert setup_webhook("", "https://example.com") is False
     assert setup_webhook("token", "") is False
+
+
+def test_async_worker_lifecycle():
+    """Test AsyncWorker persistent loop executes multiple sequential coroutines."""
+    from app import AsyncWorker
+
+    worker = AsyncWorker()
+    assert worker.loop.is_running()
+
+    async def _add(a, b):
+        return a + b
+
+    assert worker.run(_add(2, 3)) == 5
+    assert worker.run(_add(10, 20)) == 30
+
+    worker.stop()
+
