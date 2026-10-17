@@ -52,7 +52,8 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
         app.config.update(test_config)
 
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-    webhook_url = os.environ.get("WEBHOOK_URL") or os.environ.get("RENDER_EXTERNAL_URL") or ""
+    render_url = os.environ.get("RENDER_EXTERNAL_URL", "").strip()
+    webhook_url = render_url if render_url else os.environ.get("WEBHOOK_URL", "").strip()
 
     # Configure Telegram bot & application
     tg_app = None
