@@ -3,6 +3,8 @@
 import asyncio
 import logging
 import os
+import re
+import threading
 from typing import Any, Optional
 
 from flask import Flask, jsonify, request
@@ -10,10 +12,35 @@ import telegram
 from telegram import Update
 
 from bot.handlers import setup_application, setup_bot
-
-import threading
+from job_manager import (
+    JobManager,
+    RateLimiter,
+    job_manager,
+    process_upload_job,
+    process_url_job,
+    rate_limiter,
+)
 
 logger = logging.getLogger(__name__)
+
+INSTAGRAM_WEB_URL_REGEX = re.compile(
+    r"^https?://(?:www\.)?instagram\.com/(?:reel|reels|p)/[a-zA-Z0-9_-]+/?(?:\?.*)?$",
+    re.IGNORECASE,
+)
+ALLOWED_EXTENSIONS = {
+    ".mp4",
+    ".mov",
+    ".avi",
+    ".mkv",
+    ".webm",
+    ".mp3",
+    ".m4a",
+    ".wav",
+    ".aac",
+    ".ogg",
+}
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
+
 
 
 class AsyncWorker:
@@ -118,6 +145,38 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
         logger.info("Initializing Telegram webhook registration for: %s", webhook_url)
         setup_webhook(token, webhook_url, worker=worker)
 
+    app.config.setdefault("MAX_CONTENT_LENGTH", MAX_UPLOAD_BYTES)
+    app.config["JOB_MANAGER"] = job_manager
+    app.config["RATE_LIMITER"] = rate_limiter
+
+    @app.after_request
+    def set_security_headers(response):
+        """Inject robust security headers to protect against clickjacking, sniffing, and XSS."""
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self';"
+        )
+        return response
+
+    @app.errorhandler(413)
+    def request_entity_too_large(error):
+        """Handle oversized uploads with explicit JSON error."""
+        return jsonify({"error": "Fichier trop volumineux. La taille maximale est de 25 Mo."}), 413
+
+    def _get_client_ip() -> str:
+        """Extract client IP address accounting for reverse proxies."""
+        x_forwarded_for = request.headers.get("X-Forwarded-For")
+        if x_forwarded_for:
+            return x_forwarded_for.split(",")[0].strip()
+        return request.remote_addr or "127.0.0.1"
+
     @app.route("/", methods=["GET"])
     @app.route("/health", methods=["GET"])
     def health_check():
@@ -126,6 +185,100 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
             "status": "ok",
             "service": "reelcheck",
         }), 200
+
+    @app.route("/api/check-url", methods=["POST"])
+    def api_check_url():
+        """Validate Instagram Reel URL and enqueue async processing job."""
+        client_ip = _get_client_ip()
+        allowed, retry_after = rate_limiter.is_allowed(client_ip)
+        if not allowed:
+            res = jsonify({
+                "error": f"Trop de requêtes. Veuillez réessayer dans {retry_after} secondes.",
+                "retry_after": retry_after,
+            })
+            res.status_code = 429
+            res.headers["Retry-After"] = str(retry_after)
+            return res
+
+        payload = request.get_json(silent=True)
+        if not payload or not isinstance(payload, dict):
+            return jsonify({"error": "Requête invalide, JSON attendu"}), 400
+
+        url = payload.get("url")
+        if not url or not isinstance(url, str):
+            return jsonify({"error": "Paramètre 'url' manquant ou invalide"}), 400
+
+        url = url.strip()
+        if not INSTAGRAM_WEB_URL_REGEX.match(url):
+            return jsonify({"error": "URL invalide. Seuls les liens Instagram Reels sont acceptés."}), 400
+
+        job_id = job_manager.create_job(initial_stage="queued")
+        job_manager.run_job(job_id, process_url_job, job_manager, job_id, url)
+        return jsonify({"job_id": job_id, "status": "processing"}), 202
+
+    @app.route("/api/check-upload", methods=["POST"])
+    def api_check_upload():
+        """Validate uploaded video/audio file and enqueue async processing job."""
+        client_ip = _get_client_ip()
+        allowed, retry_after = rate_limiter.is_allowed(client_ip)
+        if not allowed:
+            res = jsonify({
+                "error": f"Trop de requêtes. Veuillez réessayer dans {retry_after} secondes.",
+                "retry_after": retry_after,
+            })
+            res.status_code = 429
+            res.headers["Retry-After"] = str(retry_after)
+            return res
+
+        if not request.files:
+            return jsonify({"error": "Aucun fichier fourni"}), 400
+
+        file = request.files.get("file") or request.files.get("video")
+        if not file:
+            file = next(iter(request.files.values()), None)
+
+        if not file or not file.filename:
+            return jsonify({"error": "Fichier manquant ou invalide"}), 400
+
+        _, ext = os.path.splitext(file.filename)
+        if ext.lower() not in ALLOWED_EXTENSIONS:
+            return jsonify({
+                "error": f"Extension '{ext}' non supportée. Formats acceptés : MP4, MOV, MP3, etc."
+            }), 400
+
+        file_bytes = file.read()
+        if not file_bytes:
+            return jsonify({"error": "Le fichier envoyé est vide"}), 400
+
+        if len(file_bytes) > MAX_UPLOAD_BYTES:
+            return jsonify({"error": "Fichier trop volumineux. La taille maximale est de 25 Mo."}), 413
+
+        job_id = job_manager.create_job(initial_stage="queued")
+        job_manager.run_job(
+            job_id,
+            process_upload_job,
+            job_manager,
+            job_id,
+            file_bytes,
+            file.filename,
+        )
+        return jsonify({"job_id": job_id, "status": "processing"}), 202
+
+    @app.route("/api/status/<job_id>", methods=["GET"])
+    def api_job_status(job_id: str):
+        """Retrieve real-time status and stage of an async processing job."""
+        job = job_manager.get_job(job_id)
+        if not job:
+            return jsonify({"error": f"Job '{job_id}' non trouvé"}), 404
+
+        return jsonify({
+            "job_id": job["job_id"],
+            "status": job["status"],
+            "stage": job["stage"],
+            "result": job.get("result"),
+            "error": job.get("error"),
+        }), 200
+
 
     @app.route("/<token_param>", methods=["POST"])
     @app.route("/webhook/<token_param>", methods=["POST"])
