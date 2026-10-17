@@ -66,6 +66,14 @@ class JobManager:
                 self._jobs[job_id]["status"] = status
                 self._jobs[job_id]["stage"] = stage
                 if result is not None:
+                    if status == "completed" and isinstance(result, dict) and "report_id" not in result:
+                        try:
+                            from storage import save_report
+                            report_id = save_report(result)
+                            result["report_id"] = report_id
+                            result["share_url"] = f"/r/{report_id}"
+                        except Exception as exc:
+                            logger.warning("Failed to auto-save report for job %s: %s", job_id, exc)
                     self._jobs[job_id]["result"] = result
                 if error is not None:
                     self._jobs[job_id]["error"] = error
@@ -108,6 +116,11 @@ class JobManager:
             for jid in expired:
                 del self._jobs[jid]
                 removed += 1
+        try:
+            from storage import cleanup_expired_reports
+            cleanup_expired_reports()
+        except Exception as exc:
+            logger.debug("Failed to clean up expired report storage: %s", exc)
         return removed
 
 

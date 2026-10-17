@@ -20,6 +20,7 @@ from job_manager import (
     process_url_job,
     rate_limiter,
 )
+from storage import get_report
 
 logger = logging.getLogger(__name__)
 
@@ -278,6 +279,31 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
             "result": job.get("result"),
             "error": job.get("error"),
         }), 200
+
+    @app.route("/api/report/<report_id>", methods=["GET"])
+    def api_get_report(report_id: str):
+        """Retrieve an ephemeral fact-check report by its unique ID."""
+        report = get_report(report_id)
+        if not report:
+            return jsonify({"error": f"Rapport '{report_id}' non trouvé ou expiré"}), 404
+
+        return jsonify({
+            "id": report_id,
+            "report": report,
+        }), 200
+
+    @app.route("/r/<report_id>", methods=["GET"])
+    def view_shared_report(report_id: str):
+        """Serve shared report page or JSON fallback."""
+        report = get_report(report_id)
+        if not report:
+            return jsonify({"error": f"Rapport '{report_id}' non trouvé ou expiré"}), 404
+
+        try:
+            from flask import render_template
+            return render_template("index.html", report_id=report_id, report=report)
+        except Exception:
+            return jsonify({"id": report_id, "report": report}), 200
 
 
     @app.route("/<token_param>", methods=["POST"])
