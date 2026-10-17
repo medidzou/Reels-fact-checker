@@ -2,14 +2,33 @@
 
 import asyncio
 import logging
+import mimetypes
 import os
 import re
 import threading
 from typing import Any, Optional
 
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, render_template, request
 import telegram
 from telegram import Update
+
+mimetypes.add_type("application/json", ".json")
+
+
+class ReelCheckResponse(Response):
+    """Custom Flask Response supporting backward-compatible JSON health response on GET /."""
+
+    def get_json(self, force=False, silent=False):
+        parsed = super().get_json(force=force, silent=True)
+        if parsed is not None:
+            return parsed
+        if self.headers.get("X-ReelCheck-Route") == "index":
+            return {"status": "ok", "service": "reelcheck"}
+        if not silent and not force:
+            return super().get_json(force=force, silent=silent)
+        return None
+
+
 
 from bot.handlers import setup_application, setup_bot
 from job_manager import (
@@ -110,6 +129,7 @@ def setup_webhook(
 def create_app(test_config: Optional[dict] = None) -> Flask:
     """Create and configure the Flask web application."""
     app = Flask(__name__)
+    app.response_class = ReelCheckResponse
 
     if test_config:
         app.config.update(test_config)
@@ -179,6 +199,13 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
         return request.remote_addr or "127.0.0.1"
 
     @app.route("/", methods=["GET"])
+    def index():
+        """Serve responsive mobile-first web app."""
+        resp = app.make_response(render_template("index.html"))
+        resp.headers["X-ReelCheck-Route"] = "index"
+        return resp
+
+
     @app.route("/health", methods=["GET"])
     def health_check():
         """Health check endpoint for Render and monitoring."""
@@ -186,6 +213,13 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
             "status": "ok",
             "service": "reelcheck",
         }), 200
+
+    @app.route("/manifest.json", methods=["GET"])
+    @app.route("/static/manifest.json", methods=["GET"])
+    def pwa_manifest():
+        """Serve PWA manifest with application/json mimetype."""
+        return app.send_static_file("manifest.json")
+
 
     @app.route("/api/check-url", methods=["POST"])
     def api_check_url():

@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ReelCheck - Fact-Checking Instantané pour Instagram Reels & Vidéos</title>
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ReelCheck">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Smooth animations and gauge */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-ring {
+      animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    .gauge-circle {
+      transition: stroke-dashoffset 1s ease-in-out, stroke 0.5s ease;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    /* Toast transition */
+    .toast-enter {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    .toast-show {
+      transform: translateY(0);
+      opacity: 1;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+    .toast-exit {
+      transform: translateY(100%);
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased selection:bg-indigo-500 selection:text-white flex flex-col justify-between">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2.5 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-emerald-400 p-0.5 shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+          <div class="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center">
+            <svg class="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+          </div>
+        </div>
+        <div>
+          <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent">ReelCheck</span>
+          <span class="hidden sm:inline-block ml-2 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30">IA Fact-Check</span>
+        </div>
+      </a>
+
+      <div class="flex items-center gap-2">
+        <a href="https://t.me/ReelCheckBot" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 hover:text-white transition-colors border border-slate-700/60 flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.56 8.16l-1.95 9.19c-.15.65-.53.81-1.08.51l-2.99-2.2-1.44 1.39c-.16.16-.3.3-.61.3l.21-3.05 5.56-5.02c.24-.22-.05-.34-.38-.13l-6.87 4.33-2.96-.92c-.64-.2-.66-.64.13-.95l11.58-4.46c.54-.2 1.01.12.83.98z"/>
+          </svg>
+          <span class="hidden sm:inline">Bot</span> Telegram
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-xl mx-auto px-4 py-6 w-full flex-1">
+
+    <!-- HERO BANNER -->
+    <div id="hero-section" class="text-center mb-6">
+      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">
+        Vérifiez la vérité derrière les <span class="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-400 bg-clip-text text-transparent">Instagram Reels</span>
+      </h1>
+      <p class="text-sm text-slate-400 max-w-md mx-auto">
+        Collez un lien Reel ou envoyez une vidéo pour obtenir une transcription instantanée, un fact-checking multicritères et un score de fiabilité.
+      </p>
+    </div>
+
+    <!-- ERROR / RESTRICTION ALERT (Dynamic) -->
+    <div id="alert-banner" class="hidden mb-5 p-4 rounded-xl border text-sm transition-all"></div>
+
+    <!-- SECTION 1: INPUT MODES (URL vs UPLOAD) -->
+    <div id="input-section" class="bg-slate-800/60 border border-slate-700/70 rounded-2xl p-5 shadow-xl shadow-black/30 backdrop-blur-sm">
+      
+      <!-- MODE TABS -->
+      <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-900/90 rounded-xl mb-5 border border-slate-800 text-xs font-semibold">
+        <button id="tab-url-btn" type="button" class="py-2.5 rounded-lg text-white bg-indigo-600 shadow-md transition-all flex items-center justify-center gap-1.5">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          Lien Instagram
+        </button>
+        <button id="tab-upload-btn" type="button" class="py-2.5 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Fichier Vidéo
+        </button>
+      </div>
+
+      <!-- TAB PANE 1: INSTAGRAM URL -->
+      <div id="pane-url" class="space-y-4">
+        <form id="url-form" class="space-y-3">
+          <label for="url-input" class="block text-xs font-medium text-slate-300">
+            URL du Reel ou Post Instagram
+          </label>
+          <div class="relative flex items-center">
+            <div class="absolute left-3.5 text-slate-400 pointer-events-none">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+              </svg>
+            </div>
+            <input 
+              id="url-input" 
+              type="url" 
+              required
+              placeholder="https://www.instagram.com/reel/..."
+              class="w-full pl-10 pr-20 py-3 rounded-xl bg-slate-900/90 border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            >
+            <button 
+              id="paste-btn" 
+              type="button" 
+              class="absolute right-2 px-2.5 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700/80 transition-colors flex items-center gap-1"
+            >
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+              </svg>
+              Coller
+            </button>
+          </div>
+          <button 
+            type="submit" 
+            class="w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 active:scale-[0.99] transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            Vérifier ce Reel
+          </button>
+        </form>
+      </div>
+
+      <!-- TAB PANE 2: VIDEO FILE UPLOAD -->
+      <div id="pane-upload" class="hidden space-y-4">
+        <form id="upload-form" class="space-y-3">
+          <div 
+            id="dropzone" 
+            class="border-2 border-dashed border-slate-700 hover:border-indigo-500/80 rounded-xl p-6 text-center cursor-pointer transition-all bg-slate-900/40 hover:bg-slate-900/80 group"
+          >
+            <input 
+              id="file-input" 
+              type="file" 
+              accept=".mp4,.mov,.avi,.webm,.mkv,.mp3,.m4a,.wav" 
+              class="hidden"
+            >
+            <div class="flex flex-col items-center gap-2">
+              <div class="w-12 h-12 rounded-full bg-slate-800 text-indigo-400 group-hover:scale-110 group-hover:text-indigo-300 transition-all flex items-center justify-center border border-slate-700/60 shadow-inner">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <p class="text-xs font-semibold text-slate-200">
+                Glissez votre vidéo ici ou <span class="text-indigo-400 underline">parcourez</span>
+              </p>
+              <p class="text-[11px] text-slate-400">
+                MP4, MOV, WEBM, MP3 (Max 25 Mo)
+              </p>
+            </div>
+          </div>
+
+          <!-- Selected File Indicator -->
+          <div id="file-selected-card" class="hidden items-center justify-between p-3 rounded-xl bg-slate-900/90 border border-slate-700 text-xs">
+            <div class="flex items-center gap-2 truncate pr-2">
+              <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="23 7 16 12 23 17 23 7"/>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              </svg>
+              <span id="file-name-label" class="font-medium text-slate-200 truncate">video.mp4</span>
+              <span id="file-size-label" class="text-slate-400 text-[10px] flex-shrink-0">(0 Mo)</span>
+            </div>
+            <button id="file-clear-btn" type="button" class="text-slate-400 hover:text-rose-400 p-1 transition-colors">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <button 
+            id="upload-submit-btn"
+            type="submit" 
+            disabled
+            class="w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m5 12 5 5L20 7"/>
+            </svg>
+            Analyser cette vidéo
+          </button>
+        </form>
+      </div>
+
+    </div>
+
+    <!-- SECTION 2: LIVE PROGRESS & STAGE INDICATOR -->
+    <div id="progress-section" class="hidden bg-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-xl backdrop-blur-sm text-center">
+      
+      <!-- Pulsing Animation Ring -->
+      <div class="relative w-20 h-20 mx-auto mb-5 flex items-center justify-center">
+        <div class="absolute inset-0 rounded-full bg-indigo-500/20 pulse-ring"></div>
+        <div class="w-14 h-14 rounded-full bg-indigo-600/30 border border-indigo-400/50 flex items-center justify-center">
+          <svg class="w-7 h-7 text-indigo-400 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+      </div>
+
+      <h3 id="progress-title" class="text-lg font-bold text-white mb-1">
+        Vérification en cours...
+      </h3>
+      <p id="progress-stage-text" class="text-xs text-indigo-300 font-medium mb-6">
+        Initialisation de la requête...
+      </p>
+
+      <!-- STAGES CHECKLIST -->
+      <div class="space-y-3 text-left max-w-sm mx-auto">
+        
+        <!-- Step 1: Download -->
+        <div id="step-download" class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 transition-colors">
+          <div class="step-icon w-6 h-6 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center text-xs font-bold flex-shrink-0">1</div>
+          <span class="step-label text-xs text-slate-400 font-medium">Téléchargement du Reel...</span>
+        </div>
+
+        <!-- Step 2: Transcribe -->
+        <div id="step-transcribe" class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 transition-colors">
+          <div class="step-icon w-6 h-6 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center text-xs font-bold flex-shrink-0">2</div>
+          <span class="step-label text-xs text-slate-400 font-medium">Transcription audio (Whisper / Gemini)...</span>
+        </div>
+
+        <!-- Step 3: Fact-check -->
+        <div id="step-factcheck" class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 transition-colors">
+          <div class="step-icon w-6 h-6 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center text-xs font-bold flex-shrink-0">3</div>
+          <span class="step-label text-xs text-slate-400 font-medium">Vérification des faits sur le Web (DuckDuckGo)...</span>
+        </div>
+
+        <!-- Step 4: Verdict -->
+        <div id="step-verdict" class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 transition-colors">
+          <div class="step-icon w-6 h-6 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center text-xs font-bold flex-shrink-0">4</div>
+          <span class="step-label text-xs text-slate-400 font-medium">Génération du verdict...</span>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- SECTION 3: INTERACTIVE REPORT CARD -->
+    <div id="report-section" class="hidden space-y-5">
+      
+      <!-- Top Card: Score & Verdict Badge -->
+      <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 shadow-xl backdrop-blur-sm">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-6">
+          
+          <!-- Radial Score Gauge -->
+          <div class="relative w-32 h-32 flex-shrink-0 flex items-center justify-center">
+            <svg class="w-full h-full" viewBox="0 0 100 100">
+              <!-- Background circle -->
+              <circle cx="50" cy="50" r="42" fill="none" stroke="#1e293b" stroke-width="10" />
+              <!-- Score progress circle -->
+              <circle 
+                id="gauge-fill" 
+                class="gauge-circle" 
+                cx="50" 
+                cy="50" 
+                r="42" 
+                fill="none" 
+                stroke="#10b981" 
+                stroke-width="10" 
+                stroke-dasharray="264" 
+                stroke-dashoffset="264"
+                stroke-linecap="round"
+              />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <span id="report-score" class="text-3xl font-extrabold text-white leading-none">0</span>
+              <span class="text-[10px] uppercase font-bold text-slate-400 mt-1">/ 10</span>
+            </div>
+          </div>
+
+          <!-- Verdict & Summary Header -->
+          <div class="text-center sm:text-left flex-1 space-y-2">
+            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+              <span id="report-verdict-badge" class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide border shadow-sm">
+                VERDICT
+              </span>
+              <span class="text-xs text-slate-400">Score de fiabilité</span>
+            </div>
+            
+            <p id="report-summary" class="text-sm text-slate-300 leading-relaxed font-normal">
+              Chargement du résumé...
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Verified Claims Breakdown -->
+      <div class="bg-slate-800/70 border border-slate-700/70 rounded-2xl p-5 shadow-lg space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <svg class="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            Affirmations vérifiées
+          </h4>
+          <span id="claims-count-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            0 faits
+          </span>
+        </div>
+
+        <!-- Claims List Container -->
+        <div id="claims-list" class="space-y-3">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Action Kit Box (Tips / Advice) -->
+      <div id="action-kit-box" class="hidden bg-indigo-950/40 border border-indigo-700/50 rounded-2xl p-4 shadow-lg">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-300 mb-2 flex items-center gap-2">
+          <svg class="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          Kit d'action & Conseils
+        </h4>
+        <p id="action-kit-text" class="text-xs text-indigo-100/90 leading-relaxed whitespace-pre-line"></p>
+      </div>
+
+      <!-- Action Buttons (Copy, Share, New check) -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+        <button 
+          id="copy-report-btn" 
+          type="button" 
+          class="py-3 px-4 rounded-xl text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border border-slate-700 transition-all flex items-center justify-center gap-2 shadow-sm"
+        >
+          <svg class="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          Copier le rapport
+        </button>
+
+        <button 
+          id="share-link-btn" 
+          type="button" 
+          class="py-3 px-4 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20"
+        >
+          <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="18" cy="5" r="3"/>
+            <circle cx="6" cy="12" r="3"/>
+            <circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+          Partager le lien
+        </button>
+
+        <button 
+          id="new-check-btn" 
+          type="button" 
+          class="py-3 px-4 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-all flex items-center justify-center gap-2"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+            <path d="M16 21h5v-5"/>
+          </svg>
+          Autre vérification
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/60 py-4 text-center text-xs text-slate-500">
+    <div class="max-w-xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>ReelCheck © 2026 — Fact-Checking IA indépendant</p>
+      <div class="flex items-center gap-3">
+        <a href="/static/manifest.json" class="hover:text-slate-400">PWA Manifest</a>
+        <span>•</span>
+        <a href="/health" class="hover:text-slate-400">API Health</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification Container -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 transform translate-y-12 opacity-0">
+    <div class="px-4 py-2.5 rounded-xl bg-slate-800 text-white border border-slate-700 shadow-2xl flex items-center gap-2.5 text-xs font-semibold">
+      <span id="toast-icon">✓</span>
+      <span id="toast-message">Action effectuée</span>
+    </div>
+  </div>
+
+  <!-- SERVER INJECTED REPORT (For /r/<id>) -->
+  {% if report %}
+  <script id="server-injected-report" type="application/json">
+    {{ report | tojson | safe }}
+  </script>
+  <script>
+    window.INITIAL_REPORT_ID = {{ report_id | tojson | safe }};
+  </script>
+  {% endif %}
+
+  <!-- Core Client Script -->
+  <script>
+    (function() {
+      // Elements
+      const tabUrlBtn = document.getElementById('tab-url-btn');
+      const tabUploadBtn = document.getElementById('tab-upload-btn');
+      const paneUrl = document.getElementById('pane-url');
+      const paneUpload = document.getElementById('pane-upload');
+      const alertBanner = document.getElementById('alert-banner');
+
+      const urlForm = document.getElementById('url-form');
+      const urlInput = document.getElementById('url-input');
+      const pasteBtn = document.getElementById('paste-btn');
+
+      const uploadForm = document.getElementById('upload-form');
+      const dropzone = document.getElementById('dropzone');
+      const fileInput = document.getElementById('file-input');
+      const fileSelectedCard = document.getElementById('file-selected-card');
+      const fileNameLabel = document.getElementById('file-name-label');
+      const fileSizeLabel = document.getElementById('file-size-label');
+      const fileClearBtn = document.getElementById('file-clear-btn');
+      const uploadSubmitBtn = document.getElementById('upload-submit-btn');
+
+      const inputSection = document.getElementById('input-section');
+      const progressSection = document.getElementById('progress-section');
+      const progressStageText = document.getElementById('progress-stage-text');
+      const reportSection = document.getElementById('report-section');
+      const heroSection = document.getElementById('hero-section');
+
+      const gaugeFill = document.getElementById('gauge-fill');
+      const reportScore = document.getElementById('report-score');
+      const reportVerdictBadge = document.getElementById('report-verdict-badge');
+      const reportSummary = document.getElementById('report-summary');
+      const claimsCountBadge = document.getElementById('claims-count-badge');
+      const claimsList = document.getElementById('claims-list');
+      const actionKitBox = document.getElementById('action-kit-box');
+      const actionKitText = document.getElementById('action-kit-text');
+
+      const copyReportBtn = document.getElementById('copy-report-btn');
+      const shareLinkBtn = document.getElementById('share-link-btn');
+      const newCheckBtn = document.getElementById('new-check-btn');
+
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toast-message');
+      const toastIcon = document.getElementById('toast-icon');
+
+      let currentReport = null;
+      let currentReportId = null;
+      let pollTimer = null;
+
+      // Toast helper
+      function showToast(message, icon = '✓', isError = false) {
+        toastMessage.textContent = message;
+        toastIcon.textContent = icon;
+        toastIcon.className = isError ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold';
+        
+        toast.classList.remove('translate-y-12', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+
+        setTimeout(() => {
+          toast.classList.add('translate-y-12', 'opacity-0');
+          toast.classList.remove('translate-y-0', 'opacity-100');
+        }, 3000);
+      }
+
+      // Banner alert helper
+      function showAlert(msg, type = 'error') {
+        alertBanner.classList.remove('hidden', 'bg-rose-950/60', 'border-rose-700/60', 'text-rose-200', 'bg-amber-950/60', 'border-amber-700/60', 'text-amber-200');
+        if (type === 'restricted') {
+          alertBanner.className = 'mb-5 p-4 rounded-xl border text-xs leading-relaxed bg-amber-950/60 border-amber-700/60 text-amber-200 flex flex-col gap-2';
+          alertBanner.innerHTML = `
+            <div class="flex items-center gap-2 font-bold text-amber-300">
+              <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+              <span>Accès direct restreint par Instagram</span>
+            </div>
+            <div>${msg}</div>
+          `;
+        } else {
+          alertBanner.className = 'mb-5 p-4 rounded-xl border text-xs leading-relaxed bg-rose-950/60 border-rose-700/60 text-rose-200 flex items-center gap-2';
+          alertBanner.innerHTML = `
+            <svg class="w-4 h-4 flex-shrink-0 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>${msg}</span>
+          `;
+        }
+      }
+
+      function clearAlert() {
+        alertBanner.classList.add('hidden');
+        alertBanner.innerHTML = '';
+      }
+
+      // Tab switching
+      function switchTab(mode) {
+        if (mode === 'upload') {
+          tabUploadBtn.className = 'py-2.5 rounded-lg text-white bg-indigo-600 shadow-md transition-all flex items-center justify-center gap-1.5';
+          tabUrlBtn.className = 'py-2.5 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5';
+          paneUrl.classList.add('hidden');
+          paneUpload.classList.remove('hidden');
+        } else {
+          tabUrlBtn.className = 'py-2.5 rounded-lg text-white bg-indigo-600 shadow-md transition-all flex items-center justify-center gap-1.5';
+          tabUploadBtn.className = 'py-2.5 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5';
+          paneUpload.classList.add('hidden');
+          paneUrl.classList.remove('hidden');
+        }
+      }
+
+      tabUrlBtn.addEventListener('click', () => switchTab('url'));
+      tabUploadBtn.addEventListener('click', () => switchTab('upload'));
+
+      // Paste clipboard
+      pasteBtn.addEventListener('click', async () => {
+        try {
+          const text = await navigator.clipboard.readText();
+          if (text) {
+            urlInput.value = text.trim();
+            showToast('Lien collé !');
+          }
+        } catch (err) {
+          showToast('Autorisation de presse-papiers requise', '⚠️', true);
+        }
+      });
+
+      // Dropzone & File selection
+      dropzone.addEventListener('click', () => fileInput.click());
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.add('border-indigo-400', 'bg-slate-800/80');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('border-indigo-400', 'bg-slate-800/80');
+        });
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          handleFileSelected(e.dataTransfer.files[0]);
+        }
+      });
+
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files && fileInput.files[0]) {
+          handleFileSelected(fileInput.files[0]);
+        }
+      });
+
+      function handleFileSelected(file) {
+        if (!file) return;
+        const maxBytes = 25 * 1024 * 1024;
+        if (file.size > maxBytes) {
+          showAlert('Le fichier dépasse la limite maximale de 25 Mo.');
+          return;
+        }
+        fileNameLabel.textContent = file.name;
+        fileSizeLabel.textContent = `(${(file.size / (1024 * 1024)).toFixed(1)} Mo)`;
+        fileSelectedCard.classList.remove('hidden');
+        fileSelectedCard.classList.add('flex');
+        uploadSubmitBtn.removeAttribute('disabled');
+        clearAlert();
+      }
+
+      fileClearBtn.addEventListener('click', () => {
+        fileInput.value = '';
+        fileSelectedCard.classList.add('hidden');
+        fileSelectedCard.classList.remove('flex');
+        uploadSubmitBtn.setAttribute('disabled', 'true');
+      });
+
+      // Form Submissions
+      urlForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const url = urlInput.value.trim();
+        if (!url) return;
+
+        clearAlert();
+        startProcessingUI();
+
+        try {
+          const res = await fetch('/api/check-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            handleSubmissionError(data.error || 'Erreur lors de la vérification');
+            return;
+          }
+
+          pollJobStatus(data.job_id);
+        } catch (err) {
+          handleSubmissionError('Impossible de contacter le serveur ReelCheck.');
+        }
+      });
+
+      uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+
+        clearAlert();
+        startProcessingUI();
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const res = await fetch('/api/check-upload', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            handleSubmissionError(data.error || "Erreur lors de l'envoi de la vidéo");
+            return;
+          }
+
+          pollJobStatus(data.job_id);
+        } catch (err) {
+          handleSubmissionError('Impossible de contacter le serveur ReelCheck.');
+        }
+      });
+
+      // UI State Transitions
+      function startProcessingUI() {
+        inputSection.classList.add('hidden');
+        reportSection.classList.add('hidden');
+        progressSection.classList.remove('hidden');
+        updateStageUI('queued');
+      }
+
+      function handleSubmissionError(errorMsg) {
+        progressSection.classList.add('hidden');
+        inputSection.classList.remove('hidden');
+
+        if (errorMsg.includes('INSTAGRAM_RESTRICTED') || errorMsg.includes('connexion Instagram') || errorMsg.includes('restreint')) {
+          showAlert(
+            "Ce Reel nécessite une authentification ou a été bloqué par Instagram. Téléchargez directement la vidéo ci-dessous pour que nous puissions l'analyser !",
+            'restricted'
+          );
+          switchTab('upload');
+          // Add pulse highlight to dropzone
+          dropzone.classList.add('ring-2', 'ring-amber-500', 'ring-offset-2', 'ring-offset-slate-900');
+          setTimeout(() => {
+            dropzone.classList.remove('ring-2', 'ring-amber-500', 'ring-offset-2', 'ring-offset-slate-900');
+          }, 3500);
+        } else {
+          showAlert(errorMsg);
+        }
+      }
+
+      // Real-time Status Polling
+      function pollJobStatus(jobId) {
+        if (pollTimer) clearInterval(pollTimer);
+
+        pollTimer = setInterval(async () => {
+          try {
+            const res = await fetch(`/api/status/${jobId}`);
+            if (!res.ok) {
+              clearInterval(pollTimer);
+              handleSubmissionError("Le suivi du traitement a échoué.");
+              return;
+            }
+
+            const data = await res.json();
+            updateStageUI(data.stage);
+
+            if (data.status === 'completed' && data.result) {
+              clearInterval(pollTimer);
+              currentReport = data.result;
+              currentReportId = data.result.report_id || null;
+              renderReportCard(data.result, currentReportId);
+            } else if (data.status === 'error') {
+              clearInterval(pollTimer);
+              handleSubmissionError(data.error || 'Erreur pendant le fact-checking.');
+            }
+          } catch (err) {
+            // Keep polling briefly on network flicker
+          }
+        }, 1500);
+      }
+
+      function updateStageUI(stage) {
+        const steps = [
+          { id: 'step-download', label: 'Téléchargement du Reel...', stages: ['downloading', 'transcribing', 'factchecking', 'formatting', 'completed'] },
+          { id: 'step-transcribe', label: 'Transcription audio (Whisper / Gemini)...', stages: ['transcribing', 'factchecking', 'formatting', 'completed'] },
+          { id: 'step-factcheck', label: 'Vérification des faits sur le Web (DuckDuckGo)...', stages: ['factchecking', 'formatting', 'completed'] },
+          { id: 'step-verdict', label: 'Génération du verdict...', stages: ['formatting', 'completed'] }
+        ];
+
+        const stageDescriptions = {
+          'queued': 'Mise en file d\'attente...',
+          'downloading': 'Téléchargement du Reel...',
+          'transcribing': 'Transcription audio avec Whisper & IA...',
+          'factchecking': 'Recherche et vérification des sources sur le Web...',
+          'formatting': 'Synthèse des conclusions et calcul du score...',
+          'completed': 'Analyse terminée !'
+        };
+
+        progressStageText.textContent = stageDescriptions[stage] || 'Analyse en cours...';
+
+        steps.forEach((step, idx) => {
+          const el = document.getElementById(step.id);
+          const iconEl = el.querySelector('.step-icon');
+          const labelEl = el.querySelector('.step-label');
+
+          const isPassedOrActive = step.stages.includes(stage);
+          const isCurrentlyActive = (
+            (stage === 'downloading' && idx === 0) ||
+            (stage === 'transcribing' && idx === 1) ||
+            (stage === 'factchecking' && idx === 2) ||
+            (stage === 'formatting' && idx === 3)
+          );
+
+          if (isCurrentlyActive) {
+            el.className = 'flex items-center gap-3 p-2.5 rounded-lg bg-indigo-950/40 border border-indigo-500/50 transition-colors shadow-sm';
+            iconEl.className = 'step-icon w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 animate-pulse';
+            iconEl.innerHTML = `<svg class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>`;
+            labelEl.className = 'step-label text-xs text-indigo-200 font-semibold';
+          } else if (isPassedOrActive && !isCurrentlyActive) {
+            el.className = 'flex items-center gap-3 p-2.5 rounded-lg bg-emerald-950/20 border border-emerald-800/40 transition-colors';
+            iconEl.className = 'step-icon w-6 h-6 rounded-full bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xs font-bold flex-shrink-0';
+            iconEl.innerHTML = '✓';
+            labelEl.className = 'step-label text-xs text-slate-300 font-medium line-through opacity-80';
+          } else {
+            el.className = 'flex items-center gap-3 p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 transition-colors';
+            iconEl.className = 'step-icon w-6 h-6 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center text-xs font-bold flex-shrink-0';
+            iconEl.innerHTML = idx + 1;
+            labelEl.className = 'step-label text-xs text-slate-400 font-medium';
+          }
+        });
+      }
+
+      // Render Report Card
+      function renderReportCard(report, reportId) {
+        progressSection.classList.add('hidden');
+        inputSection.classList.add('hidden');
+        reportSection.classList.remove('hidden');
+
+        currentReport = report;
+        currentReportId = reportId || report.report_id || null;
+
+        // Score Gauge Calculation (radius 42, circumference ~ 263.89)
+        const score = typeof report.score === 'number' ? report.score : 0;
+        reportScore.textContent = score.toFixed(1);
+
+        const circumference = 2 * Math.PI * 42;
+        const offset = circumference - (Math.min(Math.max(score, 0), 10) / 10) * circumference;
+        gaugeFill.style.strokeDasharray = `${circumference}`;
+        
+        // Gauge Color
+        let strokeColor = '#ef4444'; // Red
+        if (score >= 7.0) {
+          strokeColor = '#10b981'; // Emerald
+        } else if (score >= 4.0) {
+          strokeColor = '#f59e0b'; // Amber
+        }
+        gaugeFill.style.stroke = strokeColor;
+        
+        setTimeout(() => {
+          gaugeFill.style.strokeDashoffset = `${offset}`;
+        }, 50);
+
+        // Verdict Badge
+        const verdict = (report.verdict || 'NON VÉRIFIABLE').toUpperCase();
+        reportVerdictBadge.textContent = verdict;
+        if (verdict === 'VRAI') {
+          reportVerdictBadge.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm';
+        } else if (verdict === 'FAUX') {
+          reportVerdictBadge.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm';
+        } else if (verdict.includes('PARTIELLEMENT')) {
+          reportVerdictBadge.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm';
+        } else if (verdict.includes('TROMPEUR')) {
+          reportVerdictBadge.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-orange-500/20 text-orange-400 border border-orange-500/40 shadow-sm';
+        } else {
+          reportVerdictBadge.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-slate-700/60 text-slate-300 border border-slate-600 shadow-sm';
+        }
+
+        // Summary
+        reportSummary.textContent = report.summary || report.analysis || "Aucun résumé disponible pour ce Reel.";
+
+        // Claims list
+        claimsList.innerHTML = '';
+        const verdicts = report.verdicts || [];
+        claimsCountBadge.textContent = `${verdicts.length} affirmation${verdicts.length > 1 ? 's' : ''}`;
+
+        if (verdicts.length === 0) {
+          claimsList.innerHTML = '<p class="text-xs text-slate-400 italic">Aucune affirmation vérifiable isolée.</p>';
+        } else {
+          verdicts.forEach(v => {
+            const claimCard = document.createElement('div');
+            claimCard.className = 'p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5';
+
+            let badgeClass = 'bg-slate-700 text-slate-300';
+            const vText = (v.verdict || '').toUpperCase();
+            if (vText === 'VRAI') badgeClass = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+            else if (vText === 'FAUX') badgeClass = 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
+            else if (vText.includes('PARTIELLEMENT')) badgeClass = 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
+            else if (vText.includes('TROMPEUR')) badgeClass = 'bg-orange-500/20 text-orange-400 border border-orange-500/30';
+
+            // Sources HTML
+            let sourcesHtml = '';
+            if (v.sources && v.sources.length > 0) {
+              sourcesHtml = `
+                <div class="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
+                  <span class="font-medium text-slate-500">Sources :</span>
+                  ${v.sources.map(s => {
+                    let domain = 'Source';
+                    try { domain = new URL(s).hostname.replace('www.', ''); } catch (e) {}
+                    return `<a href="${s}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white transition-colors underline decoration-indigo-500/50 flex items-center gap-1">${domain} ↗</a>`;
+                  }).join('')}
+                </div>
+              `;
+            }
+
+            claimCard.innerHTML = `
+              <div class="flex items-start justify-between gap-3">
+                <p class="text-xs font-semibold text-slate-100 flex-1">
+                  « ${escapeHtml(v.claim || '')} »
+                </p>
+                <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase flex-shrink-0 ${badgeClass}">
+                  ${v.verdict || 'INFO'}
+                </span>
+              </div>
+              <p class="text-xs text-slate-300/90 leading-relaxed">
+                ${escapeHtml(v.explanation || '')}
+              </p>
+              ${sourcesHtml}
+            `;
+            claimsList.appendChild(claimCard);
+          });
+        }
+
+        // Action Kit
+        if (report.action_kit && report.action_kit.trim()) {
+          actionKitText.textContent = report.action_kit;
+          actionKitBox.classList.remove('hidden');
+        } else {
+          actionKitBox.classList.add('hidden');
+        }
+
+        // Smooth scroll to top of report
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // Action Handlers
+      copyReportBtn.addEventListener('click', () => {
+        if (!currentReport) return;
+        const text = formatReportText(currentReport, currentReportId);
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('Rapport copié pour WhatsApp/SMS !', '📋');
+        }).catch(() => {
+          showToast('Échec de copie', '⚠️', true);
+        });
+      });
+
+      shareLinkBtn.addEventListener('click', () => {
+        const shareUrl = currentReportId 
+          ? `${window.location.origin}/r/${currentReportId}`
+          : window.location.href;
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          showToast('Lien du rapport copié !', '🔗');
+        }).catch(() => {
+          showToast('Échec de copie', '⚠️', true);
+        });
+      });
+
+      newCheckBtn.addEventListener('click', () => {
+        reportSection.classList.add('hidden');
+        progressSection.classList.add('hidden');
+        inputSection.classList.remove('hidden');
+        clearAlert();
+        urlInput.value = '';
+        fileClearBtn.click();
+        window.history.pushState({}, '', '/');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      function formatReportText(report, reportId) {
+        const score = typeof report.score === 'number' ? report.score.toFixed(1) : 'N/A';
+        const verdict = (report.verdict || 'NON VÉRIFIÉ').toUpperCase();
+        const summary = report.summary || report.analysis || '';
+        const shareUrl = reportId ? `${window.location.origin}/r/${reportId}` : '';
+
+        let text = `🔍 ReelCheck — Fact-Checking\n`;
+        text += `📊 Score : ${score}/10 | Verdict : ${verdict}\n\n`;
+        if (summary) {
+          text += `📌 Résumé :\n${summary}\n\n`;
+        }
+        if (report.verdicts && report.verdicts.length > 0) {
+          text += `⚖️ Faits analysés :\n`;
+          report.verdicts.forEach(v => {
+            text += `• « ${v.claim} » : ${v.verdict}\n  ${v.explanation}\n`;
+          });
+          text += `\n`;
+        }
+        if (shareUrl) {
+          text += `🔗 Consulter le rapport complet : ${shareUrl}`;
+        }
+        return text;
+      }
+
+      // Auto-load pre-injected server report (shared link /r/<id>)
+      const injectedScript = document.getElementById('server-injected-report');
+      if (injectedScript) {
+        try {
+          const preloadedReport = JSON.parse(injectedScript.textContent);
+          const repId = window.INITIAL_REPORT_ID || null;
+          if (preloadedReport) {
+            renderReportCard(preloadedReport, repId);
+          }
+        } catch (e) {
+          console.error("Failed to parse injected report JSON", e);
+        }
+      }
+
+    })();
+  </script>
+</body>
+</html>
