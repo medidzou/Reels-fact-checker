@@ -1,10 +1,20 @@
 """Tests for ReelCheck Web API endpoints, JobManager, and security headers."""
 
 import io
+import time
 from unittest.mock import MagicMock, patch
 import pytest
 
-from job_manager import JobManager, RateLimiter
+from job_manager import (
+    JobManager,
+    RateLimiter,
+    process_upload_job,
+    process_url_job,
+)
+from pipeline.downloader import DownloadResult
+from pipeline.factchecker import FactCheckResult, Verdict
+from pipeline.transcriber import TranscriptionResult
+
 
 
 def test_check_url_validation_rejects_ssrf(client):
@@ -160,3 +170,125 @@ def test_job_manager_lifecycle():
     assert updated["status"] == "completed"
     assert updated["stage"] == "completed"
     assert updated["result"]["score"] == 9
+
+
+def test_job_manager_auto_prune_old_jobs():
+    """Test that create_job automatically prunes jobs older than 2 hours."""
+    jm = JobManager(max_concurrent=1)
+    old_id = jm.create_job()
+    # Artificially age the job by 3 hours
+    jm._jobs[old_id]["created_at"] = time.time() - 10000
+
+    # Creating a new job should auto-prune the expired one
+    new_id = jm.create_job()
+    assert jm.get_job(old_id) is None
+    assert jm.get_job(new_id) is not None
+
+
+def test_rate_limiter_prunes_stale_ips():
+    """Test that RateLimiter prunes inactive IP keys from memory."""
+    rl = RateLimiter(limits=[(5, 10)])
+    rl._requests["old_ip"] = [time.time() - 20]
+    allowed, retry_after = rl.is_allowed("new_ip")
+    assert allowed is True
+    assert "old_ip" not in rl._requests
+
+
+def test_run_job_integration_process_url_job(tmp_path):
+    """Integration test verifying run_job executes process_url_job to completion without TypeError."""
+    dummy_audio = tmp_path / "dummy.mp3"
+    dummy_audio.write_bytes(b"dummy audio content")
+
+    mock_dl = DownloadResult(audio_path=str(dummy_audio), success=True, error=None)
+    mock_transcription = TranscriptionResult(
+        transcript="Test transcript",
+        summary="Test summary",
+        claims=["Claim 1"],
+        is_tech=True,
+    )
+    mock_factcheck = FactCheckResult(
+        verdicts=[
+            Verdict(
+                claim="Claim 1",
+                verdict="VRAI",
+                explanation="Explication vérifiée",
+                sources=["https://trusted-source.org"],
+            )
+        ],
+        reliability_score=8,
+        action_kit="Action kit content",
+    )
+
+    jm = JobManager(max_concurrent=1)
+    jid = jm.create_job()
+
+    with patch("job_manager.download_reel_audio", return_value=mock_dl), \
+         patch("job_manager.transcribe_and_extract", return_value=mock_transcription), \
+         patch("job_manager.fact_check_claims", return_value=mock_factcheck):
+        t = jm.run_job(
+            jid,
+            process_url_job,
+            jm,
+            jid,
+            "https://www.instagram.com/reel/DehQF9lohPI/",
+        )
+        t.join(timeout=5)
+
+    job = jm.get_job(jid)
+    assert job is not None
+    assert job["status"] == "completed"
+    assert job["stage"] == "completed"
+    assert job["result"]["score"] == 8
+    assert job["result"]["verdict"] == "VRAI"
+    assert len(job["result"]["verdicts"]) == 1
+    assert job["result"]["verdicts"][0]["claim"] == "Claim 1"
+
+
+def test_run_job_integration_process_upload_job(tmp_path):
+    """Integration test verifying run_job executes process_upload_job to completion without TypeError."""
+    dummy_audio = tmp_path / "dummy_upload.mp3"
+    dummy_audio.write_bytes(b"dummy audio upload")
+
+    mock_transcription = TranscriptionResult(
+        transcript="Transcript from upload",
+        summary="Summary from upload",
+        claims=["Claim upload"],
+        is_tech=False,
+    )
+    mock_factcheck = FactCheckResult(
+        verdicts=[
+            Verdict(
+                claim="Claim upload",
+                verdict="FAUX",
+                explanation="Explication faux",
+                sources=["https://debunk.org"],
+            )
+        ],
+        reliability_score=2,
+        action_kit=None,
+    )
+
+    jm = JobManager(max_concurrent=1)
+    jid = jm.create_job()
+
+    with patch("job_manager.save_telegram_audio", return_value=str(dummy_audio)), \
+         patch("job_manager.transcribe_and_extract", return_value=mock_transcription), \
+         patch("job_manager.fact_check_claims", return_value=mock_factcheck):
+        t = jm.run_job(
+            jid,
+            process_upload_job,
+            jm,
+            jid,
+            b"raw video bytes",
+            "video.mp4",
+        )
+        t.join(timeout=5)
+
+    job = jm.get_job(jid)
+    assert job is not None
+    assert job["status"] == "completed"
+    assert job["stage"] == "completed"
+    assert job["result"]["score"] == 2
+    assert job["result"]["verdict"] == "FAUX"
+    assert job["result"]["summary"] == "Summary from upload"
+

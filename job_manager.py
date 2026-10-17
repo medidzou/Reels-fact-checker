@@ -26,6 +26,9 @@ class JobManager:
 
     def create_job(self, initial_stage: str = "queued") -> str:
         """Create a new job and return its unique identifier."""
+        # Auto-prune jobs older than 2 hours to safeguard Render 512MB RAM budget
+        self.cleanup_old_jobs(max_age_seconds=7200)
+
         job_id = uuid.uuid4().hex
         now = time.time()
         job_data = {
@@ -79,7 +82,7 @@ class JobManager:
         def _worker() -> None:
             try:
                 with self.semaphore:
-                    target(job_id, *args, **kwargs)
+                    target(*args, **kwargs)
             except Exception as exc:
                 logger.error("Job %s execution failed: %s", job_id, exc, exc_info=True)
                 self.update_job(
@@ -126,10 +129,22 @@ class RateLimiter:
         """
         now = time.time()
         with self._lock:
-            timestamps = self._requests.get(ip, [])
             max_window = max(w for _, w in self.limits)
+
+            # Prune stale IPs to prevent unbounded dictionary growth
+            stale_ips = [
+                k for k, ts in self._requests.items()
+                if not ts or now - ts[-1] >= max_window
+            ]
+            for k in stale_ips:
+                del self._requests[k]
+
+            timestamps = self._requests.get(ip, [])
             timestamps = [t for t in timestamps if now - t < max_window]
-            self._requests[ip] = timestamps
+            if timestamps:
+                self._requests[ip] = timestamps
+            elif ip in self._requests:
+                del self._requests[ip]
 
             for max_count, window_seconds in self.limits:
                 window_timestamps = [t for t in timestamps if now - t < window_seconds]
@@ -138,7 +153,7 @@ class RateLimiter:
                     retry_after = int(window_seconds - (now - oldest_in_window)) + 1
                     return False, max(1, retry_after)
 
-            timestamps.append(now)
+            self._requests.setdefault(ip, []).append(now)
             return True, None
 
     def reset(self) -> None:
