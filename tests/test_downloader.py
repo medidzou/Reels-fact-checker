@@ -132,3 +132,36 @@ def test_save_telegram_audio_creates_directory(tmp_path):
     saved_path = save_telegram_audio(b"sample bytes", nested_dir, "test.mp3")
     assert os.path.exists(nested_dir)
     assert os.path.exists(saved_path)
+
+
+@patch("pipeline.downloader.yt_dlp.YoutubeDL")
+def test_download_reel_audio_with_cookie_env(mock_ydl_cls, tmp_path, monkeypatch):
+    monkeypatch.setenv("INSTAGRAM_COOKIES", "fake_session_123")
+    output_dir = str(tmp_path / "downloads")
+    test_id = "C-cookieTest"
+    fake_mp3 = tmp_path / "downloads" / f"{test_id}.mp3"
+
+    mock_instance = MagicMock()
+    mock_ydl_cls.return_value.__enter__.return_value = mock_instance
+
+    def fake_extract(url, download=True):
+        fake_mp3.parent.mkdir(parents=True, exist_ok=True)
+        fake_mp3.write_bytes(b"audio")
+        return {"id": test_id}
+
+    mock_instance.extract_info.side_effect = fake_extract
+
+    valid_url = f"https://www.instagram.com/reel/{test_id}/"
+    res = download_reel_audio(valid_url, output_dir)
+    assert res.success is True
+
+    # Verify cookiefile was created and configured
+    args, kwargs = mock_ydl_cls.call_args
+    ydl_opts = args[0] if args else kwargs.get("params", {})
+    cookiefile = ydl_opts.get("cookiefile")
+    assert cookiefile is not None
+    assert os.path.exists(cookiefile)
+    cookie_content = open(cookiefile, "r", encoding="utf-8").read()
+    assert "fake_session_123" in cookie_content
+    assert "# Netscape" in cookie_content
+

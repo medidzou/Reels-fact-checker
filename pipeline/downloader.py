@@ -91,9 +91,16 @@ def download_reel_audio(url: str, output_dir: str) -> DownloadResult:
         }
 
         cookie_path = os.environ.get("INSTAGRAM_COOKIES_FILE")
-        cookie_content = os.environ.get("INSTAGRAM_COOKIES")
+        cookie_content = os.environ.get("INSTAGRAM_COOKIES", "").strip()
         if not cookie_path and cookie_content:
             cookie_path = os.path.join(output_dir, "cookies.txt")
+            if not cookie_content.startswith("# Netscape"):
+                # Automatically format raw sessionid to valid Netscape cookies file
+                raw_sessionid = cookie_content.replace("sessionid=", "").strip()
+                cookie_content = (
+                    "# Netscape HTTP Cookie File\n"
+                    f".instagram.com\tTRUE\t/\tTRUE\t2147483647\tsessionid\t{raw_sessionid}\n"
+                )
             with open(cookie_path, "w", encoding="utf-8") as f:
                 f.write(cookie_content)
         if cookie_path and os.path.exists(cookie_path):
@@ -162,6 +169,7 @@ def download_reel_audio(url: str, output_dir: str) -> DownloadResult:
                     "max_filesize": MAX_FILESIZE_BYTES,
                     "quiet": True,
                     "no_warnings": True,
+                    **({"cookiefile": cookie_path} if cookie_path and os.path.exists(cookie_path) else {}),
                 },
             ]
 
