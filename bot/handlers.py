@@ -226,29 +226,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
         # Check if Tech Reel (Short-circuit for instant response)
         from pipeline.tech_classifier import is_tech_content
-        from pipeline.tech_prompt import generate_audit_prompt, generate_deep_links
+        from pipeline.tech_prompt import build_tech_report_dict
         from storage import save_report
         from bot.formatter import format_tech_response
 
         is_tech = bool(transcription.is_tech or is_tech_content(transcription.transcript))
         if is_tech:
-            prompt = generate_audit_prompt(transcription.transcript)
-            links = generate_deep_links(prompt)
-            tech_report = {
-                "summary": transcription.summary,
-                "transcript": transcription.transcript,
-                "is_tech": True,
-                "tech_prompt": prompt,
-                "deep_links": links,
-                "score": None,
-                "verdict": "REEL TECH DÉTECTÉ",
-                "claims": transcription.claims,
-                "verdicts": [],
-                "action_kit": None,
-            }
+            tech_report = build_tech_report_dict(transcription)
             report_id = save_report(tech_report)
-            render_url = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/")
-            share_url = f"{render_url}/r/{report_id}" if render_url else f"/r/{report_id}"
+            raw_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("WEBHOOK_URL", "")
+            base_url = raw_url.rstrip("/") if raw_url else ""
+            share_url = f"{base_url}/r/{report_id}" if base_url else f"/r/{report_id}"
             tech_msgs = format_tech_response(transcription, share_url=share_url)
             for msg in tech_msgs:
                 await update.message.reply_text(msg)

@@ -247,8 +247,9 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
         if not INSTAGRAM_WEB_URL_REGEX.match(url):
             return jsonify({"error": "URL invalide. Seuls les liens Instagram Reels sont acceptés."}), 400
 
+        force_full = bool(payload.get("force_full", False))
         job_id = job_manager.create_job(initial_stage="queued")
-        job_manager.run_job(job_id, process_url_job, job_manager, job_id, url)
+        job_manager.run_job(job_id, process_url_job, job_manager, job_id, url, force_full)
         return jsonify({"job_id": job_id, "status": "processing"}), 202
 
     @app.route("/api/check-upload", methods=["POST"])
@@ -288,6 +289,7 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
         if len(file_bytes) > MAX_UPLOAD_BYTES:
             return jsonify({"error": "Fichier trop volumineux. La taille maximale est de 25 Mo."}), 413
 
+        force_full = request.form.get("force_full", "").lower() in ("true", "1", "yes")
         job_id = job_manager.create_job(initial_stage="queued")
         job_manager.run_job(
             job_id,
@@ -296,6 +298,7 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
             job_id,
             file_bytes,
             file.filename,
+            force_full,
         )
         return jsonify({"job_id": job_id, "status": "processing"}), 202
 

@@ -345,6 +345,14 @@
         <div id="tech-transcript-full" class="mt-3 pt-3 border-t border-hairline text-slate-300 leading-relaxed font-sans whitespace-pre-wrap"></div>
       </details>
 
+      <!-- FORCE FULL FACT-CHECKING OPTION -->
+      <div class="p-3.5 rounded bg-subsurface border border-hairline flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-mono text-xs">
+        <span class="text-slate-400">Besoin d'une recherche web avec sources ?</span>
+        <button id="tech-force-full-btn" type="button" class="px-3.5 py-1.5 rounded bg-surface hover:bg-hairline text-slate-200 hover:text-white border border-hairline transition-colors cursor-pointer">
+          🔍 Lancer le fact-checking web complet
+        </button>
+      </div>
+
       <!-- NAVIGATION / RETOUR -->
       <div class="flex items-center justify-between pt-2 font-mono text-xs">
         <button id="tech-new-check-btn" type="button" class="py-2.5 px-4 rounded font-medium text-slate-400 hover:text-white bg-obsidian hover:bg-surface border border-hairline transition-colors cursor-pointer">
@@ -850,26 +858,64 @@
           if (btnChatgpt && links.chatgpt) btnChatgpt.href = links.chatgpt;
           if (btnClaude && links.claude) btnClaude.href = links.claude;
 
+          const safeCopy = (text, successMsg, icon) => {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              return navigator.clipboard.writeText(text).then(() => {
+                showToast(successMsg, icon);
+              }).catch(() => {
+                showToast('Échec de la copie', '⚠️');
+              });
+            }
+            try {
+              const ta = document.createElement('textarea');
+              ta.value = text;
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand('copy');
+              document.body.removeChild(ta);
+              showToast(successMsg, icon);
+            } catch (e) {
+              showToast('Échec de la copie', '⚠️');
+            }
+          };
+
           if (btnGemini) {
             btnGemini.onclick = () => {
-              navigator.clipboard.writeText(report.tech_prompt).then(() => {
-                showToast('Prompt copié ! Ouverture de Gemini...', '🔵');
-                setTimeout(() => {
-                  window.open('https://gemini.google.com/app', '_blank');
-                }, 400);
-              }).catch(() => {
-                window.open('https://gemini.google.com/app', '_blank');
-              });
+              safeCopy(report.tech_prompt, 'Prompt copié ! Ouverture de Gemini...', '🔵');
+              window.open('https://gemini.google.com/app', '_blank');
             };
           }
 
           if (btnCopyPrompt) {
             btnCopyPrompt.onclick = () => {
-              navigator.clipboard.writeText(report.tech_prompt).then(() => {
-                showToast('Prompt copié pour Antigravity / Codex !', '📋');
-              }).catch(() => {
-                showToast('Échec de la copie', '⚠️');
-              });
+              safeCopy(report.tech_prompt, 'Prompt copié pour Antigravity / Codex !', '📋');
+            };
+          }
+
+          const techForceFullBtn = document.getElementById('tech-force-full-btn');
+          if (techForceFullBtn) {
+            techForceFullBtn.onclick = async () => {
+              const url = (currentReport && currentReport.url) || urlInput.value.trim();
+              if (!url) {
+                showToast('Recherchez par lien pour le fact-checking complet', 'ℹ️');
+                return;
+              }
+              startProcessingUI();
+              try {
+                const res = await fetch('/api/check-url', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ url: url, force_full: true })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                  handleSubmissionError(data.error || 'Erreur lors de la relance');
+                  return;
+                }
+                pollJobStatus(data.job_id);
+              } catch (err) {
+                handleSubmissionError('Erreur réseau lors de la relance.');
+              }
             };
           }
 

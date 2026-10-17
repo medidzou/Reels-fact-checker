@@ -12,7 +12,7 @@ import uuid
 from pipeline.downloader import download_reel_audio, save_telegram_audio
 from pipeline.factchecker import fact_check_claims
 from pipeline.tech_classifier import is_tech_content
-from pipeline.tech_prompt import generate_audit_prompt, generate_deep_links
+from pipeline.tech_prompt import build_tech_report_dict
 from pipeline.transcriber import TranscriptionResult, transcribe_and_extract
 
 logger = logging.getLogger(__name__)
@@ -208,24 +208,7 @@ def _build_result_dict(transcription: Any, factcheck: Any) -> dict[str, Any]:
 
 def _build_tech_result_dict(transcription: TranscriptionResult) -> dict[str, Any]:
     """Assemble an immediate tech audit report with deep links without heavy factchecking."""
-    prompt = generate_audit_prompt(transcription.transcript)
-    links = generate_deep_links(prompt)
-    return {
-        "summary": transcription.summary,
-        "transcript": transcription.transcript,
-        "is_tech": True,
-        "tech_prompt": prompt,
-        "deep_links": links,
-        "score": None,
-        "verdict": "REEL TECH DÉTECTÉ",
-        "explanation": (
-            "Ce contenu a été identifié comme un Reel présentant un outil, repo ou prompt. "
-            "Utilisez les boutons ci-dessous pour lancer l'audit technique et cybersécurité sur votre IA préférée."
-        ),
-        "claims": transcription.claims,
-        "verdicts": [],
-        "action_kit": None,
-    }
+    return build_tech_report_dict(transcription)
 
 
 def process_url_job(job_mgr: JobManager, job_id: str, url: str, force_full: bool = False) -> None:

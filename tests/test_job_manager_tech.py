@@ -77,3 +77,38 @@ def test_process_upload_job_short_circuits_for_tech_reel(tmp_path):
         assert result["is_tech"] is True
         assert "tech_prompt" in result
         assert mock_factcheck.called is False
+
+
+def test_process_url_job_force_full_bypasses_short_circuit(tmp_path):
+    jm = JobManager()
+    job_id = jm.create_job()
+
+    tech_transcription = TranscriptionResult(
+        transcript="Arrêtez tout ! Installez ces 4 serveurs MCP pour Claude Desktop : Firecrawl et Playwright.",
+        summary="Extensions MCP pour Claude.",
+        claims=["Firecrawl permet de scraper"],
+        is_tech=True,
+    )
+    from pipeline.factchecker import FactCheckResult, Verdict
+    mock_factcheck_res = FactCheckResult(
+        verdicts=[Verdict(claim="Firecrawl permet de scraper", verdict="VRAI", explanation="Vérifié", sources=[])],
+        reliability_score=9,
+        action_kit="Tester Firecrawl",
+    )
+
+    with patch("job_manager.download_reel_audio") as mock_dl, \
+         patch("job_manager.transcribe_and_extract", return_value=tech_transcription), \
+         patch("job_manager.fact_check_claims", return_value=mock_factcheck_res) as mock_factcheck:
+
+        dummy_audio = tmp_path / "dummy.mp3"
+        dummy_audio.write_text("audio content")
+        mock_dl.return_value = DownloadResult(success=True, audio_path=str(dummy_audio))
+
+        process_url_job(jm, job_id, "https://instagram.com/reel/123", force_full=True)
+
+        job_data = jm.get_job(job_id)
+        assert job_data is not None
+        assert job_data["status"] == "completed"
+        assert mock_factcheck.called is True
+        assert job_data["result"]["score"] == 9
+

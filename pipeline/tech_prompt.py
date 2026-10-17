@@ -1,7 +1,7 @@
 """Standardized audit prompt generator and deep link formatter for Tech Reels."""
 
+from typing import Any, Optional
 import urllib.parse
-from typing import Optional
 
 
 def generate_audit_prompt(transcript: Optional[str]) -> str:
@@ -45,16 +45,48 @@ Réponds de façon concise et sans complaisance aux 4 points suivants :
 def generate_deep_links(prompt: str) -> dict[str, str]:
     """Generate 1-click deep links for major AI platforms.
 
+    Truncates long query strings to 3500 chars to avoid HTTP 414 URI Too Long errors
+    while keeping the full prompt accessible via clipboard copy.
+
     Args:
         prompt: The full audit prompt text.
 
     Returns:
         Dict mapping platform keys ('chatgpt', 'claude', 'gemini') to deep-link URLs.
     """
-    encoded_query = urllib.parse.quote(prompt)
+    # Safe truncation for URL query parameters to avoid browser/server length limits
+    url_prompt = prompt if len(prompt) <= 3500 else prompt[:3450] + "\n... [texte tronqué pour l'URL, utilisez Copier]"
+    encoded_query = urllib.parse.quote(url_prompt)
 
     return {
         "chatgpt": f"https://chatgpt.com/?q={encoded_query}",
         "claude": f"https://claude.ai/new?q={encoded_query}",
         "gemini": "https://gemini.google.com/app",
+    }
+
+
+def build_tech_report_dict(transcription: Any) -> dict[str, Any]:
+    """Assemble a standardized tech audit report dict shared across Web & Telegram pipelines."""
+    transcript_text = getattr(transcription, "transcript", "")
+    summary_text = getattr(transcription, "summary", "")
+    claims_list = getattr(transcription, "claims", [])
+
+    prompt = generate_audit_prompt(transcript_text)
+    links = generate_deep_links(prompt)
+
+    return {
+        "summary": summary_text,
+        "transcript": transcript_text,
+        "is_tech": True,
+        "tech_prompt": prompt,
+        "deep_links": links,
+        "score": None,
+        "verdict": "REEL TECH DÉTECTÉ",
+        "explanation": (
+            "Ce contenu a été identifié comme un Reel présentant un outil, repo ou prompt. "
+            "Utilisez les boutons ci-dessous pour lancer l'audit technique et cybersécurité sur votre IA préférée."
+        ),
+        "claims": claims_list,
+        "verdicts": [],
+        "action_kit": None,
     }
