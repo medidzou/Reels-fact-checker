@@ -3,7 +3,7 @@ flask==3.1.0
 gunicorn==23.0.0
 yt-dlp>=2026.8.19
 google-genai==1.14.0
-duckduckgo-search==7.5.0
+duckduckgo-search>=8.0.0
 groq==0.15.0
 pydub==0.25.1
 static-ffmpeg>=2.5

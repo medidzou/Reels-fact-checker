@@ -67,17 +67,49 @@ def test_search_claim_empty_or_no_results():
     assert search_claim("", ddgs_client=mock_ddgs) == ""
     assert mock_ddgs.text.call_count == 0
 
-    # Query with no results
-    assert search_claim("nonexistent_rare_query_xyz", ddgs_client=mock_ddgs) == ""
+    # Query with no results from DDGS or fallback
+    with patch("urllib.request.urlopen") as mock_url:
+        fake_empty = MagicMock()
+        fake_empty.read.return_value = b'{"query": {"search": []}}'
+        mock_url.return_value.__enter__.return_value = fake_empty
+        assert search_claim("nonexistent_rare_query_xyz", ddgs_client=mock_ddgs) == ""
 
 
-def test_search_claim_handles_exception():
-    """Test that search_claim handles DDGS exceptions gracefully."""
+@patch("urllib.request.urlopen", side_effect=Exception("Wikipedia unreachable"))
+def test_search_claim_handles_exception(mock_url):
+    """Test that search_claim handles DDGS and fallback exceptions gracefully."""
     mock_ddgs = MagicMock()
     mock_ddgs.text.side_effect = Exception("Rate limit reached")
 
     context = search_claim("Un claim quelconque", ddgs_client=mock_ddgs)
     assert context == ""
+
+
+@patch("urllib.request.urlopen")
+def test_search_claim_wikipedia_fallback(mock_url):
+    """Test that search_claim falls back to Wikipedia when DDGS fails."""
+    import json
+
+    mock_ddgs = MagicMock()
+    mock_ddgs.text.side_effect = Exception("Rate limit reached")
+
+    fake_resp = MagicMock()
+    fake_resp.read.return_value = json.dumps({
+        "query": {
+            "search": [
+                {
+                    "title": "Pakistan",
+                    "snippet": "Le <span class=\"searchmatch\">Pakistan</span> est un pays d'Asie du Sud.",
+                }
+            ]
+        }
+    }).encode("utf-8")
+    mock_url.return_value.__enter__.return_value = fake_resp
+
+    context = search_claim("Pakistan population", ddgs_client=mock_ddgs)
+    assert "[1] Pakistan" in context
+    assert "https://fr.wikipedia.org/wiki/Pakistan" in context
+    assert "Le Pakistan est un pays d'Asie du Sud." in context
 
 
 def test_synthesize_verdict_vrai():

@@ -132,7 +132,10 @@ def search_claim(claim: str, ddgs_client: Optional[Any] = None) -> str:
 
     try:
         if ddgs_client is None:
-            from duckduckgo_search import DDGS
+            try:
+                from duckduckgo_search import DDGS
+            except ImportError:
+                from ddgs import DDGS
 
             ddgs_client = DDGS()
 
@@ -149,24 +152,34 @@ def search_claim(claim: str, ddgs_client: Optional[Any] = None) -> str:
     except Exception as exc:
         logger.warning("DuckDuckGo search error for claim '%s': %s", clean_claim, exc)
 
-    # Wikipedia OpenSearch Fallback for real factual context
+    # Wikipedia Full-Text Search Fallback for factual context
     try:
+        import html
         import json
         import urllib.parse
         import urllib.request
 
-        encoded_q = urllib.parse.quote(clean_claim[:80])
-        wiki_url = f"https://fr.wikipedia.org/w/api.php?action=opensearch&search={encoded_q}&limit=3&format=json"
-        req = urllib.request.Request(wiki_url, headers={"User-Agent": "ReelCheckBot/1.0"})
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            wiki_data = json.loads(resp.read().decode("utf-8"))
-            if len(wiki_data) >= 4 and wiki_data[1]:
-                wiki_items = []
-                for idx, (title, snippet, link) in enumerate(zip(wiki_data[1], wiki_data[2], wiki_data[3]), 1):
-                    wiki_items.append(f"[{idx}] {title}\nURL: {link}\nSnippet: {snippet or title}")
-                if wiki_items:
-                    logger.info("Retrieved %d Wikipedia fallback results for claim '%s'", len(wiki_items), clean_claim)
-                    return "\n\n".join(wiki_items)
+        for lang in ("fr", "en"):
+            encoded_q = urllib.parse.quote(clean_claim[:100])
+            wiki_url = f"https://{lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch={encoded_q}&format=json&srlimit=3"
+            req = urllib.request.Request(
+                wiki_url,
+                headers={"User-Agent": "ReelCheckBot/1.0 (https://t.me/ReelsFactCheckBot; contact@reelcheck.app)"},
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                search_results = data.get("query", {}).get("search", [])
+                if search_results:
+                    wiki_items = []
+                    for idx, item in enumerate(search_results, 1):
+                        title = str(item.get("title", "")).strip()
+                        raw_snippet = str(item.get("snippet", "")).strip()
+                        clean_snippet = html.unescape(re.sub(r"<[^>]+>", "", raw_snippet)).strip()
+                        link = f"https://{lang}.wikipedia.org/wiki/{urllib.parse.quote(title.replace(' ', '_'))}"
+                        wiki_items.append(f"[{idx}] {title}\nURL: {link}\nSnippet: {clean_snippet or title}")
+                    if wiki_items:
+                        logger.info("Retrieved %d Wikipedia (%s) fallback results for claim '%s'", len(wiki_items), lang, clean_claim)
+                        return "\n\n".join(wiki_items)
     except Exception as wiki_err:
         logger.debug("Wikipedia fallback error for claim '%s': %s", clean_claim, wiki_err)
 

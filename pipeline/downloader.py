@@ -9,9 +9,12 @@ import uuid
 import yt_dlp
 
 try:
-    import static_ffmpeg
+    import shutil
 
-    static_ffmpeg.add_paths()
+    if not (shutil.which("ffmpeg") and shutil.which("ffprobe")):
+        import static_ffmpeg
+
+        static_ffmpeg.add_paths()
 except Exception:
     pass
 
