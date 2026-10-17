@@ -74,10 +74,36 @@ def test_webhook_valid_update(test_client):
         mock_process.assert_awaited_once()
 
     with patch("telegram.ext.Application.process_update", new_callable=AsyncMock) as mock_process_alias:
-        response_alias = test_client.post("/webhook/test_bot_token", json=update_payload)
+        update_payload_alias = dict(update_payload, update_id=999998)
+        response_alias = test_client.post("/webhook/test_bot_token", json=update_payload_alias)
         assert response_alias.status_code == 200
         assert response_alias.get_json()["status"] == "ok"
         mock_process_alias.assert_awaited_once()
+
+
+def test_webhook_duplicate_update_ignored(test_client):
+    """Test duplicate update_id is acknowledged with 200 OK without re-processing."""
+    payload = {
+        "update_id": 112233,
+        "message": {
+            "message_id": 2,
+            "date": 1700000000,
+            "chat": {"id": 12345, "type": "private"},
+            "text": "/help",
+        },
+    }
+    with patch("telegram.ext.Application.process_update", new_callable=AsyncMock) as mock_process:
+        res1 = test_client.post("/test_bot_token", json=payload)
+        assert res1.status_code == 200
+        mock_process.assert_awaited_once()
+
+    # Second call with identical update_id should be ignored
+    with patch("telegram.ext.Application.process_update", new_callable=AsyncMock) as mock_process_dup:
+        res2 = test_client.post("/test_bot_token", json=payload)
+        assert res2.status_code == 200
+        assert res2.get_json().get("duplicate") is True
+        mock_process_dup.assert_not_called()
+
 
 
 

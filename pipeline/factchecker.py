@@ -137,21 +137,40 @@ def search_claim(claim: str, ddgs_client: Optional[Any] = None) -> str:
             ddgs_client = DDGS()
 
         raw_results = ddgs_client.text(clean_claim, max_results=3)
-        if not raw_results:
-            return ""
-
-        formatted_items = []
-        for i, item in enumerate(raw_results, 1):
-            title = str(item.get("title", "")).strip()
-            href = str(item.get("href", "")).strip()
-            body = str(item.get("body", "")).strip()
-            formatted_items.append(f"[{i}] {title}\nURL: {href}\nSnippet: {body}")
-
-        return "\n\n".join(formatted_items)
+        if raw_results:
+            formatted_items = []
+            for i, item in enumerate(raw_results, 1):
+                title = str(item.get("title", "")).strip()
+                href = str(item.get("href", "")).strip()
+                body = str(item.get("body", "")).strip()
+                formatted_items.append(f"[{i}] {title}\nURL: {href}\nSnippet: {body}")
+            return "\n\n".join(formatted_items)
 
     except Exception as exc:
         logger.warning("DuckDuckGo search error for claim '%s': %s", clean_claim, exc)
-        return ""
+
+    # Wikipedia OpenSearch Fallback for real factual context
+    try:
+        import json
+        import urllib.parse
+        import urllib.request
+
+        encoded_q = urllib.parse.quote(clean_claim[:80])
+        wiki_url = f"https://fr.wikipedia.org/w/api.php?action=opensearch&search={encoded_q}&limit=3&format=json"
+        req = urllib.request.Request(wiki_url, headers={"User-Agent": "ReelCheckBot/1.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            wiki_data = json.loads(resp.read().decode("utf-8"))
+            if len(wiki_data) >= 4 and wiki_data[1]:
+                wiki_items = []
+                for idx, (title, snippet, link) in enumerate(zip(wiki_data[1], wiki_data[2], wiki_data[3]), 1):
+                    wiki_items.append(f"[{idx}] {title}\nURL: {link}\nSnippet: {snippet or title}")
+                if wiki_items:
+                    logger.info("Retrieved %d Wikipedia fallback results for claim '%s'", len(wiki_items), clean_claim)
+                    return "\n\n".join(wiki_items)
+    except Exception as wiki_err:
+        logger.debug("Wikipedia fallback error for claim '%s': %s", clean_claim, wiki_err)
+
+    return ""
 
 
 def parse_verdict_response(raw_text: str, claim: str) -> Verdict:

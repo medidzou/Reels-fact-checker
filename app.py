@@ -150,13 +150,34 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
             logger.error("Failed to parse Telegram update: %s", exc)
             return jsonify({"status": "bad request", "error": str(exc)}), 400
 
+        # Deduplication to prevent processing the same update multiple times
+        processed_updates = app.config.setdefault("_PROCESSED_UPDATE_IDS", set())
+        if update and getattr(update, "update_id", None):
+            if update.update_id in processed_updates:
+                logger.info("Ignoring duplicate Telegram update ID: %s", update.update_id)
+                return jsonify({"status": "ok", "duplicate": True}), 200
+            processed_updates.add(update.update_id)
+            if len(processed_updates) > 2000:
+                processed_updates.clear()
+
         if current_tg_app:
             try:
                 worker_instance = app.config.get("ASYNC_WORKER")
-                if worker_instance:
-                    worker_instance.run(current_tg_app.process_update(update))
+                if app.config.get("TESTING"):
+                    # Synchronous execution in tests for deterministic assertions
+                    if worker_instance:
+                        worker_instance.run(current_tg_app.process_update(update))
+                    else:
+                        asyncio.run(current_tg_app.process_update(update))
                 else:
-                    asyncio.run(current_tg_app.process_update(update))
+                    # Asynchronous execution in production: immediately return 200 OK
+                    # to prevent Telegram webhook 60s timeout and duplicate retries
+                    if worker_instance:
+                        asyncio.run_coroutine_threadsafe(
+                            current_tg_app.process_update(update), worker_instance.loop
+                        )
+                    else:
+                        asyncio.run(current_tg_app.process_update(update))
             except Exception as exc:
                 logger.error("Error processing Telegram update: %s", exc)
                 return jsonify({"status": "error", "error": str(exc)}), 500
