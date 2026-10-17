@@ -204,7 +204,7 @@ def test_run_job_integration_process_url_job(tmp_path):
         transcript="Test transcript",
         summary="Test summary",
         claims=["Claim 1"],
-        is_tech=True,
+        is_tech=False,
     )
     mock_factcheck = FactCheckResult(
         verdicts=[
