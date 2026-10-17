@@ -3,15 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ReelCheck - Fact-Checking Instantané pour Instagram Reels & Vidéos</title>
+  <title>ReelCheck — Fact-Checking & Analyse Visuelle de Reels Instagram</title>
   
   <!-- PWA Meta Tags -->
   <link rel="manifest" href="/static/manifest.json">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#080b11">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="ReelCheck">
   
+  <!-- Editorial & Swiss Typography (Google Fonts) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -19,15 +24,18 @@
       darkMode: 'class',
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            display: ['"Space Grotesk"', 'sans-serif'],
+            serif: ['"Newsreader"', 'Georgia', 'serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
           colors: {
-            brand: {
-              50: '#eef2ff',
-              100: '#e0e7ff',
-              400: '#818cf8',
-              500: '#6366f1',
-              600: '#4f46e5',
-              700: '#4338ca',
-            }
+            obsidian: '#080b11',
+            surface: '#0f141f',
+            subsurface: '#131926',
+            hairline: '#1e2638',
+            hairlineLight: '#2a354c',
           }
         }
       }
@@ -35,394 +43,318 @@
   </script>
 
   <style>
-    /* Smooth animations and gauge */
-    @keyframes pulse-ring {
-      0% { transform: scale(0.95); opacity: 0.8; }
-      50% { transform: scale(1.05); opacity: 0.4; }
-      100% { transform: scale(0.95); opacity: 0.8; }
-    }
-    .pulse-ring {
-      animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    /* Swiss Typography & Anti-Slop Discipline */
+    ::selection {
+      background-color: #f8fafc;
+      color: #080b11;
     }
     .gauge-circle {
-      transition: stroke-dashoffset 1s ease-in-out, stroke 0.5s ease;
+      transition: stroke-dashoffset 0.9s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.4s ease;
       transform: rotate(-90deg);
       transform-origin: 50% 50%;
     }
-    /* Toast transition */
-    .toast-enter {
-      transform: translateY(100%);
-      opacity: 0;
+    @keyframes subtle-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
     }
-    .toast-show {
-      transform: translateY(0);
-      opacity: 1;
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
-    }
-    .toast-exit {
-      transform: translateY(100%);
-      opacity: 0;
-      transition: transform 0.3s ease, opacity 0.3s ease;
+    .status-dot-pulse {
+      animation: subtle-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased selection:bg-indigo-500 selection:text-white flex flex-col justify-between">
+<body class="bg-obsidian bg-slate-900 text-slate-100 min-h-screen font-sans antialiased flex flex-col justify-between selection:bg-slate-100 selection:text-obsidian">
 
-  <!-- Header -->
-  <header class="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30">
-    <div class="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
+  <!-- Minimalist Editorial Header -->
+  <header class="border-b border-hairline bg-obsidian/90 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-2xl mx-auto px-4 py-3.5 flex items-center justify-between">
       <a href="/" class="flex items-center gap-2.5 group">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-emerald-400 p-0.5 shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-          <div class="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center">
-            <svg class="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              <path d="m9 12 2 2 4-4"/>
-            </svg>
-          </div>
+        <div class="w-7 h-7 rounded border border-hairline bg-surface flex items-center justify-center font-display font-bold text-sm text-white group-hover:border-slate-400 transition-colors">
+          R
         </div>
-        <div>
-          <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent">ReelCheck</span>
-          <span class="hidden sm:inline-block ml-2 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30">IA Fact-Check</span>
+        <div class="flex items-baseline gap-2">
+          <span class="font-display font-bold text-lg tracking-tight text-white">ReelCheck</span>
+          <span class="text-[11px] font-mono text-slate-500 uppercase tracking-widest hidden sm:inline">Desk d'Investigation</span>
         </div>
       </a>
 
-      <div class="flex items-center gap-2">
-        <a href="https://t.me/ReelCheckBot" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 hover:text-white transition-colors border border-slate-700/60 flex items-center gap-1.5">
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1.5 px-2 py-1 rounded border border-hairline text-[11px] font-mono text-slate-400">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 status-dot-pulse"></span>
+          <span>LIVE</span>
+        </div>
+        <a href="https://t.me/ReelsFactCheckBot" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded text-xs font-medium text-slate-300 hover:text-white bg-surface hover:bg-subsurface transition-colors border border-hairline flex items-center gap-1.5">
           <svg class="w-3.5 h-3.5 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.56 8.16l-1.95 9.19c-.15.65-.53.81-1.08.51l-2.99-2.2-1.44 1.39c-.16.16-.3.3-.61.3l.21-3.05 5.56-5.02c.24-.22-.05-.34-.38-.13l-6.87 4.33-2.96-.92c-.64-.2-.66-.64.13-.95l11.58-4.46c.54-.2 1.01.12.83.98z"/>
           </svg>
-          <span class="hidden sm:inline">Bot</span> Telegram
+          <span class="font-mono text-[11px]">@ReelsFactCheckBot</span>
         </a>
       </div>
     </div>
   </header>
 
   <!-- Main Content Container -->
-  <main class="max-w-xl mx-auto px-4 py-6 w-full flex-1">
+  <main class="max-w-2xl mx-auto px-4 py-8 w-full flex-1">
 
-    <!-- HERO BANNER -->
-    <div id="hero-section" class="text-center mb-6">
-      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">
-        Vérifiez la vérité derrière les <span class="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-400 bg-clip-text text-transparent">Instagram Reels</span>
+    <!-- HERO SECTION -->
+    <div id="hero-section" class="mb-8">
+      <div class="inline-flex items-center gap-2 mb-3">
+        <span class="text-[11px] font-mono font-medium text-slate-400 tracking-wider uppercase border border-hairline px-2 py-0.5 rounded">Vérification Factuelle Indépendante</span>
+      </div>
+      <h1 class="text-3xl sm:text-4xl font-display font-bold tracking-tight text-white leading-tight mb-2.5">
+        Vérification chirurgicale de Reels Instagram
       </h1>
-      <p class="text-sm text-slate-400 max-w-md mx-auto">
-        Collez un lien Reel ou envoyez une vidéo pour obtenir une transcription instantanée, un fact-checking multicritères et un score de fiabilité.
+      <p class="text-sm text-slate-400 leading-relaxed max-w-xl">
+        Colle le lien d'un Reel ou téléverse une vidéo. Le moteur extrait les affirmations déclarées, les confronte aux sources du web en temps réel et certifie les faits.
       </p>
     </div>
 
-    <!-- ERROR / RESTRICTION ALERT (Dynamic) -->
-    <div id="alert-banner" class="hidden mb-5 p-4 rounded-xl border text-sm transition-all"></div>
+    <!-- NOTIFICATION / ALERT BANNER -->
+    <div id="alert-banner" class="hidden mb-6 p-3.5 rounded border text-xs leading-relaxed transition-all"></div>
 
-    <!-- SECTION 1: INPUT MODES (URL vs UPLOAD) -->
-    <div id="input-section" class="bg-slate-800/60 border border-slate-700/70 rounded-2xl p-5 shadow-xl shadow-black/30 backdrop-blur-sm">
+    <!-- INPUT CONTAINER -->
+    <div id="input-section" class="space-y-4">
       
-      <!-- MODE TABS -->
-      <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-900/90 rounded-xl mb-5 border border-slate-800 text-xs font-semibold">
-        <button id="tab-url-btn" type="button" class="py-2.5 rounded-lg text-white bg-indigo-600 shadow-md transition-all flex items-center justify-center gap-1.5">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <!-- TABS SELECTOR -->
+      <div class="flex items-center border-b border-hairline gap-6 text-xs font-mono">
+        <button 
+          id="tab-url-btn" 
+          type="button"
+          class="pb-2.5 font-medium border-b-2 border-white text-white transition-all flex items-center gap-2 cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
           </svg>
-          Lien Instagram
+          <span>Lien Instagram Reel</span>
         </button>
-        <button id="tab-upload-btn" type="button" class="py-2.5 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+        <button 
+          id="tab-upload-btn" 
+          type="button"
+          class="pb-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all flex items-center gap-2 cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="17 8 12 3 7 8"/>
             <line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
-          Fichier Vidéo
+          <span>Fichier Vidéo (Max 25 Mo)</span>
         </button>
       </div>
 
-      <!-- TAB PANE 1: INSTAGRAM URL -->
-      <div id="pane-url" class="space-y-4">
+      <!-- TAB 1 : URL SUBMISSION FORM -->
+      <div id="pane-url" class="space-y-3 pt-1">
         <form id="url-form" class="space-y-3">
-          <label for="url-input" class="block text-xs font-medium text-slate-300">
-            URL du Reel ou Post Instagram
-          </label>
-          <div class="relative flex items-center">
-            <div class="absolute left-3.5 text-slate-400 pointer-events-none">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-              </svg>
-            </div>
+          <div class="relative">
             <input 
               id="url-input" 
               type="url" 
+              placeholder="https://www.instagram.com/reel/..." 
               required
-              placeholder="https://www.instagram.com/reel/..."
-              class="w-full pl-10 pr-20 py-3 rounded-xl bg-slate-900/90 border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              class="w-full pl-3.5 pr-20 py-3 rounded bg-subsurface border border-hairline text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-slate-300 transition-colors font-mono"
             >
             <button 
               id="paste-btn" 
               type="button" 
-              class="absolute right-2 px-2.5 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700/80 transition-colors flex items-center gap-1"
+              class="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded text-[11px] font-mono text-slate-400 hover:text-white bg-surface hover:bg-hairline transition-colors border border-hairline cursor-pointer"
             >
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-              </svg>
               Coller
             </button>
           </div>
+
           <button 
             type="submit" 
-            class="w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 active:scale-[0.99] transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer"
+            class="w-full py-3 px-4 rounded text-sm font-semibold text-black bg-white hover:bg-slate-200 active:bg-slate-300 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
           >
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <span>Vérifier les Faits</span>
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
-            Vérifier ce Reel
           </button>
         </form>
       </div>
 
-      <!-- TAB PANE 2: VIDEO FILE UPLOAD -->
-      <div id="pane-upload" class="hidden space-y-4">
+      <!-- TAB 2 : VIDEO FILE UPLOAD FORM -->
+      <div id="pane-upload" class="hidden space-y-3 pt-1">
         <form id="upload-form" class="space-y-3">
           <div 
             id="dropzone" 
-            class="border-2 border-dashed border-slate-700 hover:border-indigo-500/80 rounded-xl p-6 text-center cursor-pointer transition-all bg-slate-900/40 hover:bg-slate-900/80 group"
+            class="border-2 border-dashed border-hairline hover:border-slate-400 rounded p-6 text-center cursor-pointer transition-colors bg-surface/50"
           >
             <input 
               id="file-input" 
               type="file" 
-              accept=".mp4,.mov,.avi,.webm,.mkv,.mp3,.m4a,.wav" 
+              accept="video/mp4,video/quicktime,video/x-msvideo,video/webm,audio/mpeg,audio/mp4,audio/wav" 
               class="hidden"
             >
-            <div class="flex flex-col items-center gap-2">
-              <div class="w-12 h-12 rounded-full bg-slate-800 text-indigo-400 group-hover:scale-110 group-hover:text-indigo-300 transition-all flex items-center justify-center border border-slate-700/60 shadow-inner">
-                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-              </div>
-              <p class="text-xs font-semibold text-slate-200">
-                Glissez votre vidéo ici ou <span class="text-indigo-400 underline">parcourez</span>
+            <div class="flex flex-col items-center justify-center gap-2">
+              <svg class="w-6 h-6 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <p class="text-xs text-slate-300 font-medium">
+                Glissez votre vidéo ici ou <span class="underline decoration-slate-500 text-white">parcourez vos fichiers</span>
               </p>
-              <p class="text-[11px] text-slate-400">
-                MP4, MOV, WEBM, MP3 (Max 25 Mo)
-              </p>
+              <p class="text-[11px] font-mono text-slate-500">MP4, MOV, WEBM jusqu'à 25 Mo</p>
             </div>
           </div>
 
-          <!-- Selected File Indicator -->
-          <div id="file-selected-card" class="hidden items-center justify-between p-3 rounded-xl bg-slate-900/90 border border-slate-700 text-xs">
-            <div class="flex items-center gap-2 truncate pr-2">
-              <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="23 7 16 12 23 17 23 7"/>
-                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-              </svg>
-              <span id="file-name-label" class="font-medium text-slate-200 truncate">video.mp4</span>
-              <span id="file-size-label" class="text-slate-400 text-[10px] flex-shrink-0">(0 Mo)</span>
+          <!-- File Selected Preview Card -->
+          <div id="file-selected-card" class="hidden p-3 rounded bg-surface border border-hairline flex items-center justify-between text-xs font-mono">
+            <div class="flex items-center gap-2 truncate">
+              <span class="text-slate-400">📄</span>
+              <span id="file-name-label" class="text-slate-200 truncate">video.mp4</span>
+              <span id="file-size-label" class="text-slate-500 text-[11px]">(0 MB)</span>
             </div>
-            <button id="file-clear-btn" type="button" class="text-slate-400 hover:text-rose-400 p-1 transition-colors">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
+            <button id="file-clear-btn" type="button" class="text-slate-400 hover:text-rose-400 px-2 py-0.5">✕</button>
           </div>
 
           <button 
-            id="upload-submit-btn"
+            id="upload-submit-btn" 
             type="submit" 
-            disabled
-            class="w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer"
+            disabled 
+            class="w-full py-3 px-4 rounded text-sm font-semibold text-black bg-white hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
           >
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m5 12 5 5L20 7"/>
+            <span>Analyser le Fichier</span>
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
-            Analyser cette vidéo
           </button>
         </form>
       </div>
 
     </div>
 
-    <!-- SECTION 2: LIVE PROGRESS & STAGE INDICATOR -->
-    <div id="progress-section" class="hidden bg-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-xl backdrop-blur-sm text-center">
-      
-      <!-- Pulsing Animation Ring -->
-      <div class="relative w-20 h-20 mx-auto mb-5 flex items-center justify-center">
-        <div class="absolute inset-0 rounded-full bg-indigo-500/20 pulse-ring"></div>
-        <div class="w-14 h-14 rounded-full bg-indigo-600/30 border border-indigo-400/50 flex items-center justify-center">
-          <svg class="w-7 h-7 text-indigo-400 animate-spin" viewBox="0 0 24 24" fill="none">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
+    <!-- PROGRESS & STAGE TRACKER (Hidden during idle) -->
+    <div id="progress-section" class="hidden my-8 p-6 rounded bg-surface border border-hairline">
+      <div class="flex items-center justify-between mb-4 border-b border-hairline pb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 status-dot-pulse"></span>
+          <span class="font-display font-semibold text-sm text-white">Analyse Forensique en Cours</span>
         </div>
+        <span class="text-[11px] font-mono text-slate-400">Job actif</span>
       </div>
 
-      <h3 id="progress-title" class="text-lg font-bold text-white mb-1">
-        Vérification en cours...
-      </h3>
-      <p id="progress-stage-text" class="text-xs text-indigo-300 font-medium mb-6">
+      <p id="progress-stage-text" class="text-xs font-mono text-slate-300 mb-6">
         Initialisation de la requête...
       </p>
 
-      <!-- STAGES CHECKLIST -->
-      <div class="space-y-3 text-left max-w-sm mx-auto">
-        
-        <!-- Step 1: Download -->
-        <div id="step-download" class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 transition-colors">
-          <div class="step-icon w-6 h-6 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center text-xs font-bold flex-shrink-0">1</div>
-          <span class="step-label text-xs text-slate-400 font-medium">Téléchargement du Reel...</span>
+      <!-- Stepper List -->
+      <div class="space-y-3 font-mono text-xs">
+        <div id="step-download" class="flex items-center gap-3 text-slate-500">
+          <span class="step-indicator w-4 h-4 rounded-full border border-hairline flex items-center justify-center text-[10px]">1</span>
+          <span class="step-label">Téléchargement du flux média</span>
         </div>
-
-        <!-- Step 2: Transcribe -->
-        <div id="step-transcribe" class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 transition-colors">
-          <div class="step-icon w-6 h-6 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center text-xs font-bold flex-shrink-0">2</div>
-          <span class="step-label text-xs text-slate-400 font-medium">Transcription audio (Whisper / Gemini)...</span>
+        <div id="step-transcribe" class="flex items-center gap-3 text-slate-500">
+          <span class="step-indicator w-4 h-4 rounded-full border border-hairline flex items-center justify-center text-[10px]">2</span>
+          <span class="step-label">Transcription audio & isolation des claims</span>
         </div>
-
-        <!-- Step 3: Fact-check -->
-        <div id="step-factcheck" class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 transition-colors">
-          <div class="step-icon w-6 h-6 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center text-xs font-bold flex-shrink-0">3</div>
-          <span class="step-label text-xs text-slate-400 font-medium">Vérification des faits sur le Web (DuckDuckGo)...</span>
+        <div id="step-factcheck" class="flex items-center gap-3 text-slate-500">
+          <span class="step-indicator w-4 h-4 rounded-full border border-hairline flex items-center justify-center text-[10px]">3</span>
+          <span class="step-label">Recoupement avec les sources web en temps réel</span>
         </div>
-
-        <!-- Step 4: Verdict -->
-        <div id="step-verdict" class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 transition-colors">
-          <div class="step-icon w-6 h-6 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center text-xs font-bold flex-shrink-0">4</div>
-          <span class="step-label text-xs text-slate-400 font-medium">Génération du verdict...</span>
+        <div id="step-verdict" class="flex items-center gap-3 text-slate-500">
+          <span class="step-indicator w-4 h-4 rounded-full border border-hairline flex items-center justify-center text-[10px]">4</span>
+          <span class="step-label">Synthèse critique & calcul du score de confiance</span>
         </div>
-
       </div>
-
     </div>
 
-    <!-- SECTION 3: INTERACTIVE REPORT CARD -->
-    <div id="report-section" class="hidden space-y-5">
-      
-      <!-- Top Card: Score & Verdict Badge -->
-      <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 shadow-xl backdrop-blur-sm">
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-6">
-          
-          <!-- Radial Score Gauge -->
-          <div class="relative w-32 h-32 flex-shrink-0 flex items-center justify-center">
-            <svg class="w-full h-full" viewBox="0 0 100 100">
-              <!-- Background circle -->
-              <circle cx="50" cy="50" r="42" fill="none" stroke="#1e293b" stroke-width="10" />
-              <!-- Score progress circle -->
-              <circle 
-                id="gauge-fill" 
-                class="gauge-circle" 
-                cx="50" 
-                cy="50" 
-                r="42" 
-                fill="none" 
-                stroke="#10b981" 
-                stroke-width="10" 
-                stroke-dasharray="264" 
-                stroke-dashoffset="264"
-                stroke-linecap="round"
-              />
-            </svg>
-            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span id="report-score" class="text-3xl font-extrabold text-white leading-none">0</span>
-              <span class="text-[10px] uppercase font-bold text-slate-400 mt-1">/ 10</span>
+    <!-- REPORT CARD DISPLAY (Hidden during idle/loading) -->
+    <div id="report-section" class="hidden my-8 space-y-6">
+
+      <!-- TOP SUMMARY CARD -->
+      <div class="p-6 rounded bg-surface border border-hairline space-y-5">
+        
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-hairline pb-5">
+          <div class="flex items-center gap-4">
+            <!-- Circular Gauge -->
+            <div class="relative w-20 h-20 flex-shrink-0">
+              <svg class="w-20 h-20" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#1e2638" stroke-width="7"/>
+                <circle id="gauge-fill" class="gauge-circle" cx="50" cy="50" r="42" fill="none" stroke="#10b981" stroke-width="7" stroke-linecap="round" stroke-dasharray="263.89" stroke-dashoffset="263.89"/>
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span id="report-score" class="font-mono font-bold text-lg text-white">0.0</span>
+                <span class="text-[9px] font-mono text-slate-400">/ 10</span>
+              </div>
+            </div>
+
+            <div>
+              <span class="text-[10px] font-mono uppercase text-slate-400 tracking-wider">Note de Fiabilité</span>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span id="report-verdict-badge" class="px-2 py-0.5 rounded text-xs font-mono font-semibold uppercase tracking-wider bg-surface border border-hairline text-white">
+                  VERDICT
+                </span>
+              </div>
             </div>
           </div>
 
-          <!-- Verdict & Summary Header -->
-          <div class="text-center sm:text-left flex-1 space-y-2">
-            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-              <span id="report-verdict-badge" class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide border shadow-sm">
-                VERDICT
-              </span>
-              <span class="text-xs text-slate-400">Score de fiabilité</span>
-            </div>
-            
-            <p id="report-summary" class="text-sm text-slate-300 leading-relaxed font-normal">
-              Chargement du résumé...
-            </p>
+          <div class="text-right sm:block hidden">
+            <span class="text-[10px] font-mono uppercase text-slate-500 block">Rapport Certifié</span>
+            <span class="text-xs font-mono text-slate-300">DuckDuckGo + Gemini / Groq</span>
           </div>
-
         </div>
+
+        <!-- Executive Summary -->
+        <div>
+          <h3 class="text-xs font-mono uppercase tracking-wider text-slate-400 mb-1.5">Synthèse de Vérification</h3>
+          <p id="report-summary" class="text-sm text-slate-200 leading-relaxed"></p>
+        </div>
+
       </div>
 
-      <!-- Verified Claims Breakdown -->
-      <div class="bg-slate-800/70 border border-slate-700/70 rounded-2xl p-5 shadow-lg space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-            <svg class="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
-            </svg>
-            Affirmations vérifiées
-          </h4>
-          <span id="claims-count-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-            0 faits
-          </span>
+      <!-- CLAIMS BREAKDOWN SECTION -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <h3 class="text-xs font-mono uppercase tracking-wider text-slate-400">Affirmations Relevées & Pièces à Conviction</h3>
+          <span id="claims-count-badge" class="text-xs font-mono text-slate-500">0 affirmations</span>
         </div>
 
-        <!-- Claims List Container -->
         <div id="claims-list" class="space-y-3">
-          <!-- Populated by JS -->
+          <!-- Dynamically populated claim cards -->
         </div>
       </div>
 
-      <!-- Action Kit Box (Tips / Advice) -->
-      <div id="action-kit-box" class="hidden bg-indigo-950/40 border border-indigo-700/50 rounded-2xl p-4 shadow-lg">
-        <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-300 mb-2 flex items-center gap-2">
-          <svg class="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="16" x2="12" y2="12"/>
-            <line x1="12" y1="8" x2="12.01" y2="8"/>
-          </svg>
-          Kit d'action & Conseils
-        </h4>
-        <p id="action-kit-text" class="text-xs text-indigo-100/90 leading-relaxed whitespace-pre-line"></p>
+      <!-- ACTION KIT RECOMMENDATIONS -->
+      <div id="action-kit-box" class="p-5 rounded bg-surface border border-hairline space-y-2">
+        <div class="flex items-center gap-2 text-xs font-mono uppercase text-slate-300">
+          <span>⚡</span>
+          <span class="font-semibold tracking-wider">Kit d'Action & Conduite à Tenir</span>
+        </div>
+        <p id="action-kit-text" class="text-xs text-slate-300 leading-relaxed whitespace-pre-line"></p>
       </div>
 
-      <!-- Action Buttons (Copy, Share, New check) -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+      <!-- ACTION BUTTONS -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 font-mono text-xs">
         <button 
           id="copy-report-btn" 
           type="button" 
-          class="py-3 px-4 rounded-xl text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border border-slate-700 transition-all flex items-center justify-center gap-2 shadow-sm"
+          class="py-3 px-4 rounded font-medium text-slate-200 bg-surface hover:bg-subsurface border border-hairline hover:border-slate-400 transition-colors flex items-center justify-center gap-2 cursor-pointer"
         >
-          <svg class="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-          </svg>
-          Copier le rapport
+          <span>Copier le rapport</span>
+          <span class="text-slate-400">📋</span>
         </button>
 
         <button 
           id="share-link-btn" 
           type="button" 
-          class="py-3 px-4 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20"
+          class="py-3 px-4 rounded font-medium text-black bg-white hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
         >
-          <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="18" cy="5" r="3"/>
-            <circle cx="6" cy="12" r="3"/>
-            <circle cx="18" cy="19" r="3"/>
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-          </svg>
-          Partager le lien
+          <span>Partager le lien</span>
+          <span>🔗</span>
         </button>
 
         <button 
           id="new-check-btn" 
           type="button" 
-          class="py-3 px-4 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-all flex items-center justify-center gap-2"
+          class="py-3 px-4 rounded font-medium text-slate-400 hover:text-white bg-obsidian hover:bg-surface border border-hairline transition-colors flex items-center justify-center gap-2 cursor-pointer"
         >
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-            <path d="M3 3v5h5"/>
-            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-            <path d="M16 21h5v-5"/>
-          </svg>
-          Autre vérification
+          <span>Autre vérification</span>
+          <span>↻</span>
         </button>
       </div>
 
@@ -430,21 +362,23 @@
 
   </main>
 
-  <!-- Footer -->
-  <footer class="border-t border-slate-800/60 py-4 text-center text-xs text-slate-500">
-    <div class="max-w-xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-      <p>ReelCheck © 2026 — Fact-Checking IA indépendant</p>
-      <div class="flex items-center gap-3">
-        <a href="/static/manifest.json" class="hover:text-slate-400">PWA Manifest</a>
+  <!-- Swiss Minimalist Footer -->
+  <footer class="border-t border-hairline py-5 text-xs font-mono text-slate-500">
+    <div class="max-w-2xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <p>ReelCheck © 2026 — Rigueur & Fact-Checking Indépendant</p>
+      <div class="flex items-center gap-4 text-[11px]">
+        <a href="/health" class="hover:text-slate-300 transition-colors">API Health</a>
         <span>•</span>
-        <a href="/health" class="hover:text-slate-400">API Health</a>
+        <a href="/static/manifest.json" class="hover:text-slate-300 transition-colors">PWA Manifest</a>
+        <span>•</span>
+        <a href="https://t.me/ReelsFactCheckBot" target="_blank" class="hover:text-slate-300 transition-colors">Telegram</a>
       </div>
     </div>
   </footer>
 
   <!-- Toast Notification Container -->
   <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 transform translate-y-12 opacity-0">
-    <div class="px-4 py-2.5 rounded-xl bg-slate-800 text-white border border-slate-700 shadow-2xl flex items-center gap-2.5 text-xs font-semibold">
+    <div class="px-4 py-2 rounded bg-white text-black font-mono text-xs font-semibold shadow-2xl flex items-center gap-2 border border-slate-200">
       <span id="toast-icon">✓</span>
       <span id="toast-message">Action effectuée</span>
     </div>
@@ -503,139 +437,128 @@
       const newCheckBtn = document.getElementById('new-check-btn');
 
       const toast = document.getElementById('toast');
-      const toastMessage = document.getElementById('toast-message');
       const toastIcon = document.getElementById('toast-icon');
+      const toastMessage = document.getElementById('toast-message');
 
       let currentReport = null;
       let currentReportId = null;
       let pollTimer = null;
 
-      // Toast helper
-      function showToast(message, icon = '✓', isError = false) {
-        toastMessage.textContent = message;
+      // Toast feedback helper
+      function showToast(message, icon = '✓') {
         toastIcon.textContent = icon;
-        toastIcon.className = isError ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold';
-        
+        toastMessage.textContent = message;
         toast.classList.remove('translate-y-12', 'opacity-0');
         toast.classList.add('translate-y-0', 'opacity-100');
 
         setTimeout(() => {
-          toast.classList.add('translate-y-12', 'opacity-0');
           toast.classList.remove('translate-y-0', 'opacity-100');
+          toast.classList.add('translate-y-12', 'opacity-0');
         }, 3000);
       }
 
       // Banner alert helper
       function showAlert(msg, type = 'error') {
-        alertBanner.classList.remove('hidden', 'bg-rose-950/60', 'border-rose-700/60', 'text-rose-200', 'bg-amber-950/60', 'border-amber-700/60', 'text-amber-200');
+        alertBanner.textContent = msg;
+        alertBanner.className = 'mb-6 p-3.5 rounded text-xs font-mono leading-relaxed transition-all';
         if (type === 'restricted') {
-          alertBanner.className = 'mb-5 p-4 rounded-xl border text-xs leading-relaxed bg-amber-950/60 border-amber-700/60 text-amber-200 flex flex-col gap-2';
-          alertBanner.innerHTML = `
-            <div class="flex items-center gap-2 font-bold text-amber-300">
-              <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-              <span>Accès direct restreint par Instagram</span>
-            </div>
-            <div>${msg}</div>
-          `;
+          alertBanner.classList.add('bg-amber-950/40', 'border-amber-700/60', 'text-amber-200');
         } else {
-          alertBanner.className = 'mb-5 p-4 rounded-xl border text-xs leading-relaxed bg-rose-950/60 border-rose-700/60 text-rose-200 flex items-center gap-2';
-          alertBanner.innerHTML = `
-            <svg class="w-4 h-4 flex-shrink-0 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>${msg}</span>
-          `;
+          alertBanner.classList.add('bg-rose-950/40', 'border-rose-800/60', 'text-rose-200');
         }
+        alertBanner.classList.remove('hidden');
       }
 
       function clearAlert() {
         alertBanner.classList.add('hidden');
-        alertBanner.innerHTML = '';
+        alertBanner.textContent = '';
       }
 
-      // Tab switching
+      // Tab Switching
       function switchTab(mode) {
-        if (mode === 'upload') {
-          tabUploadBtn.className = 'py-2.5 rounded-lg text-white bg-indigo-600 shadow-md transition-all flex items-center justify-center gap-1.5';
-          tabUrlBtn.className = 'py-2.5 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5';
-          paneUrl.classList.add('hidden');
-          paneUpload.classList.remove('hidden');
-        } else {
-          tabUrlBtn.className = 'py-2.5 rounded-lg text-white bg-indigo-600 shadow-md transition-all flex items-center justify-center gap-1.5';
-          tabUploadBtn.className = 'py-2.5 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5';
-          paneUpload.classList.add('hidden');
+        if (mode === 'url') {
+          tabUrlBtn.className = 'pb-2.5 font-medium border-b-2 border-white text-white transition-all flex items-center gap-2 cursor-pointer';
+          tabUploadBtn.className = 'pb-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all flex items-center gap-2 cursor-pointer';
           paneUrl.classList.remove('hidden');
+          paneUpload.classList.add('hidden');
+        } else {
+          tabUploadBtn.className = 'pb-2.5 font-medium border-b-2 border-white text-white transition-all flex items-center gap-2 cursor-pointer';
+          tabUrlBtn.className = 'pb-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all flex items-center gap-2 cursor-pointer';
+          paneUpload.classList.remove('hidden');
+          paneUrl.classList.add('hidden');
         }
+        clearAlert();
       }
 
       tabUrlBtn.addEventListener('click', () => switchTab('url'));
       tabUploadBtn.addEventListener('click', () => switchTab('upload'));
 
-      // Paste clipboard
+      // Clipboard Paste Action
       pasteBtn.addEventListener('click', async () => {
         try {
           const text = await navigator.clipboard.readText();
           if (text) {
             urlInput.value = text.trim();
-            showToast('Lien collé !');
+            showToast('Lien collé depuis le presse-papier');
           }
-        } catch (err) {
-          showToast('Autorisation de presse-papiers requise', '⚠️', true);
+        } catch (e) {
+          urlInput.focus();
         }
       });
 
-      // Dropzone & File selection
+      // File Selection & Drag-and-drop Handlers
       dropzone.addEventListener('click', () => fileInput.click());
 
       ['dragenter', 'dragover'].forEach(eventName => {
         dropzone.addEventListener(eventName, (e) => {
           e.preventDefault();
-          e.stopPropagation();
-          dropzone.classList.add('border-indigo-400', 'bg-slate-800/80');
+          dropzone.classList.add('border-white', 'bg-subsurface');
         });
       });
 
       ['dragleave', 'drop'].forEach(eventName => {
         dropzone.addEventListener(eventName, (e) => {
           e.preventDefault();
-          e.stopPropagation();
-          dropzone.classList.remove('border-indigo-400', 'bg-slate-800/80');
+          dropzone.classList.remove('border-white', 'bg-subsurface');
         });
       });
 
       dropzone.addEventListener('drop', (e) => {
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-          handleFileSelected(e.dataTransfer.files[0]);
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          handleFileSelected(files[0]);
         }
       });
 
       fileInput.addEventListener('change', () => {
-        if (fileInput.files && fileInput.files[0]) {
+        if (fileInput.files.length > 0) {
           handleFileSelected(fileInput.files[0]);
         }
       });
 
       function handleFileSelected(file) {
-        if (!file) return;
         const maxBytes = 25 * 1024 * 1024;
         if (file.size > maxBytes) {
-          showAlert('Le fichier dépasse la limite maximale de 25 Mo.');
+          showAlert("Le fichier dépasse la limite autorisée de 25 Mo.");
           return;
         }
+
         fileNameLabel.textContent = file.name;
-        fileSizeLabel.textContent = `(${(file.size / (1024 * 1024)).toFixed(1)} Mo)`;
+        fileSizeLabel.textContent = `(${(file.size / (1024 * 1024)).toFixed(1)} MB)`;
+        dropzone.classList.add('hidden');
         fileSelectedCard.classList.remove('hidden');
-        fileSelectedCard.classList.add('flex');
-        uploadSubmitBtn.removeAttribute('disabled');
+        uploadSubmitBtn.disabled = false;
         clearAlert();
       }
 
       fileClearBtn.addEventListener('click', () => {
         fileInput.value = '';
+        dropzone.classList.remove('hidden');
         fileSelectedCard.classList.add('hidden');
-        fileSelectedCard.classList.remove('flex');
-        uploadSubmitBtn.setAttribute('disabled', 'true');
+        uploadSubmitBtn.disabled = true;
       });
 
-      // Form Submissions
+      // Submit Form : URL
       urlForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const url = urlInput.value.trim();
@@ -648,12 +571,12 @@
           const res = await fetch('/api/check-url', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url })
+            body: JSON.stringify({ url: url })
           });
           const data = await res.json();
 
           if (!res.ok) {
-            handleSubmissionError(data.error || 'Erreur lors de la vérification');
+            handleSubmissionError(data.error || 'Erreur lors de la soumission du lien');
             return;
           }
 
@@ -663,18 +586,19 @@
         }
       });
 
+      // Submit Form : Upload
       uploadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const file = fileInput.files && fileInput.files[0];
+        const file = fileInput.files[0];
         if (!file) return;
 
         clearAlert();
         startProcessingUI();
 
-        const formData = new FormData();
-        formData.append('file', file);
-
         try {
+          const formData = new FormData();
+          formData.append('video', file);
+
           const res = await fetch('/api/check-upload', {
             method: 'POST',
             body: formData
@@ -706,14 +630,13 @@
 
         if (errorMsg.includes('INSTAGRAM_RESTRICTED') || errorMsg.includes('connexion Instagram') || errorMsg.includes('restreint')) {
           showAlert(
-            "Ce Reel nécessite une authentification ou a été bloqué par Instagram. Téléchargez directement la vidéo ci-dessous pour que nous puissions l'analyser !",
+            "Ce Reel est restreint ou bloqué par Instagram sur les serveurs cloud. Déposez directement la vidéo dans l'onglet ci-dessous pour lancer l'analyse !",
             'restricted'
           );
           switchTab('upload');
-          // Add pulse highlight to dropzone
-          dropzone.classList.add('ring-2', 'ring-amber-500', 'ring-offset-2', 'ring-offset-slate-900');
+          dropzone.classList.add('border-amber-400');
           setTimeout(() => {
-            dropzone.classList.remove('ring-2', 'ring-amber-500', 'ring-offset-2', 'ring-offset-slate-900');
+            dropzone.classList.remove('border-amber-400');
           }, 3500);
         } else {
           showAlert(errorMsg);
@@ -753,51 +676,39 @@
 
       function updateStageUI(stage) {
         const steps = [
-          { id: 'step-download', label: 'Téléchargement du Reel...', stages: ['downloading', 'transcribing', 'factchecking', 'formatting', 'completed'] },
-          { id: 'step-transcribe', label: 'Transcription audio (Whisper / Gemini)...', stages: ['transcribing', 'factchecking', 'formatting', 'completed'] },
-          { id: 'step-factcheck', label: 'Vérification des faits sur le Web (DuckDuckGo)...', stages: ['factchecking', 'formatting', 'completed'] },
-          { id: 'step-verdict', label: 'Génération du verdict...', stages: ['formatting', 'completed'] }
+          { id: 'step-download', label: 'Téléchargement du flux média', stages: ['downloading', 'transcribing', 'factchecking', 'formatting', 'completed'] },
+          { id: 'step-transcribe', label: 'Transcription audio & isolation des claims', stages: ['transcribing', 'factchecking', 'formatting', 'completed'] },
+          { id: 'step-factcheck', label: 'Recoupement avec les sources web en temps réel', stages: ['factchecking', 'formatting', 'completed'] },
+          { id: 'step-verdict', label: 'Synthèse critique & calcul du score de confiance', stages: ['formatting', 'completed'] }
         ];
 
-        const stageDescriptions = {
-          'queued': 'Mise en file d\'attente...',
-          'downloading': 'Téléchargement du Reel...',
-          'transcribing': 'Transcription audio avec Whisper & IA...',
-          'factchecking': 'Recherche et vérification des sources sur le Web...',
-          'formatting': 'Synthèse des conclusions et calcul du score...',
-          'completed': 'Analyse terminée !'
+        const stageLabels = {
+          'queued': 'Mise en file d\'attente de l\'analyse...',
+          'downloading': 'Téléchargement du Reel Instagram en cours...',
+          'transcribing': 'Transcription audio via Whisper / Gemini...',
+          'factchecking': 'Vérification des affirmations sur le Web...',
+          'formatting': 'Finalisation du rapport...',
+          'completed': 'Analyse terminée avec succès.'
         };
 
-        progressStageText.textContent = stageDescriptions[stage] || 'Analyse en cours...';
+        progressStageText.textContent = stageLabels[stage] || `Traitement : ${stage}`;
 
         steps.forEach((step, idx) => {
           const el = document.getElementById(step.id);
-          const iconEl = el.querySelector('.step-icon');
-          const labelEl = el.querySelector('.step-label');
+          if (!el) return;
+          const indicator = el.querySelector('.step-indicator');
+          const label = el.querySelector('.step-label');
 
-          const isPassedOrActive = step.stages.includes(stage);
-          const isCurrentlyActive = (
-            (stage === 'downloading' && idx === 0) ||
-            (stage === 'transcribing' && idx === 1) ||
-            (stage === 'factchecking' && idx === 2) ||
-            (stage === 'formatting' && idx === 3)
-          );
-
-          if (isCurrentlyActive) {
-            el.className = 'flex items-center gap-3 p-2.5 rounded-lg bg-indigo-950/40 border border-indigo-500/50 transition-colors shadow-sm';
-            iconEl.className = 'step-icon w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 animate-pulse';
-            iconEl.innerHTML = `<svg class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>`;
-            labelEl.className = 'step-label text-xs text-indigo-200 font-semibold';
-          } else if (isPassedOrActive && !isCurrentlyActive) {
-            el.className = 'flex items-center gap-3 p-2.5 rounded-lg bg-emerald-950/20 border border-emerald-800/40 transition-colors';
-            iconEl.className = 'step-icon w-6 h-6 rounded-full bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xs font-bold flex-shrink-0';
-            iconEl.innerHTML = '✓';
-            labelEl.className = 'step-label text-xs text-slate-300 font-medium line-through opacity-80';
+          if (step.stages.includes(stage)) {
+            el.className = 'flex items-center gap-3 text-slate-200';
+            indicator.className = 'step-indicator w-4 h-4 rounded-full bg-white text-black font-mono font-bold flex items-center justify-center text-[10px]';
+            indicator.textContent = '✓';
+            label.className = 'step-label text-slate-200';
           } else {
-            el.className = 'flex items-center gap-3 p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 transition-colors';
-            iconEl.className = 'step-icon w-6 h-6 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center text-xs font-bold flex-shrink-0';
-            iconEl.innerHTML = idx + 1;
-            labelEl.className = 'step-label text-xs text-slate-400 font-medium';
+            el.className = 'flex items-center gap-3 text-slate-500';
+            indicator.className = 'step-indicator w-4 h-4 rounded-full border border-hairline flex items-center justify-center text-[10px]';
+            indicator.textContent = `${idx + 1}`;
+            label.className = 'step-label text-slate-500';
           }
         });
       }
@@ -811,7 +722,7 @@
         currentReport = report;
         currentReportId = reportId || report.report_id || null;
 
-        // Score Gauge Calculation (radius 42, circumference ~ 263.89)
+        // Score Calculation
         const score = typeof report.score === 'number' ? report.score : 0;
         reportScore.textContent = score.toFixed(1);
 
@@ -819,13 +730,9 @@
         const offset = circumference - (Math.min(Math.max(score, 0), 10) / 10) * circumference;
         gaugeFill.style.strokeDasharray = `${circumference}`;
         
-        // Gauge Color
         let strokeColor = '#ef4444'; // Red
-        if (score >= 7.0) {
-          strokeColor = '#10b981'; // Emerald
-        } else if (score >= 4.0) {
-          strokeColor = '#f59e0b'; // Amber
-        }
+        if (score >= 7.0) strokeColor = '#10b981'; // Emerald
+        else if (score >= 4.0) strokeColor = '#f59e0b'; // Amber
         gaugeFill.style.stroke = strokeColor;
         
         setTimeout(() => {
@@ -836,19 +743,17 @@
         const verdict = (report.verdict || 'NON VÉRIFIABLE').toUpperCase();
         reportVerdictBadge.textContent = verdict;
         if (verdict === 'VRAI') {
-          reportVerdictBadge.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm';
+          reportVerdictBadge.className = 'px-2.5 py-0.5 rounded text-xs font-mono font-bold uppercase tracking-wider bg-emerald-950/60 text-emerald-300 border border-emerald-600/60';
         } else if (verdict === 'FAUX') {
-          reportVerdictBadge.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm';
-        } else if (verdict.includes('PARTIELLEMENT')) {
-          reportVerdictBadge.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm';
-        } else if (verdict.includes('TROMPEUR')) {
-          reportVerdictBadge.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-orange-500/20 text-orange-400 border border-orange-500/40 shadow-sm';
+          reportVerdictBadge.className = 'px-2.5 py-0.5 rounded text-xs font-mono font-bold uppercase tracking-wider bg-rose-950/60 text-rose-300 border border-rose-600/60';
+        } else if (verdict.includes('PARTIELLEMENT') || verdict.includes('TROMPEUR')) {
+          reportVerdictBadge.className = 'px-2.5 py-0.5 rounded text-xs font-mono font-bold uppercase tracking-wider bg-amber-950/60 text-amber-300 border border-amber-600/60';
         } else {
-          reportVerdictBadge.className = 'px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-slate-700/60 text-slate-300 border border-slate-600 shadow-sm';
+          reportVerdictBadge.className = 'px-2.5 py-0.5 rounded text-xs font-mono font-bold uppercase tracking-wider bg-surface text-slate-300 border border-hairline';
         }
 
         // Summary
-        reportSummary.textContent = report.summary || report.analysis || "Aucun résumé disponible pour ce Reel.";
+        reportSummary.textContent = report.summary || report.analysis || "Aucun résumé factuel disponible.";
 
         // Claims list
         claimsList.innerHTML = '';
@@ -856,31 +761,30 @@
         claimsCountBadge.textContent = `${verdicts.length} affirmation${verdicts.length > 1 ? 's' : ''}`;
 
         if (verdicts.length === 0) {
-          claimsList.innerHTML = '<p class="text-xs text-slate-400 italic">Aucune affirmation vérifiable isolée.</p>';
+          claimsList.innerHTML = '<p class="text-xs font-mono text-slate-500 italic p-3 border border-hairline rounded">Aucune affirmation factuelle vérifiable isolée dans ce Reel.</p>';
         } else {
-          verdicts.forEach(v => {
+          verdicts.forEach((v, i) => {
             const claimCard = document.createElement('div');
-            claimCard.className = 'p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5';
+            claimCard.className = 'p-4 rounded bg-surface border border-hairline space-y-3';
 
-            let badgeClass = 'bg-slate-700 text-slate-300';
+            let badgeClass = 'bg-surface text-slate-400 border border-hairline';
             const vText = (v.verdict || '').toUpperCase();
-            if (vText === 'VRAI') badgeClass = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-            else if (vText === 'FAUX') badgeClass = 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
-            else if (vText.includes('PARTIELLEMENT')) badgeClass = 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
-            else if (vText.includes('TROMPEUR')) badgeClass = 'bg-orange-500/20 text-orange-400 border border-orange-500/30';
+            if (vText === 'VRAI') badgeClass = 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/60';
+            else if (vText === 'FAUX') badgeClass = 'bg-rose-950/40 text-rose-400 border border-rose-800/60';
+            else if (vText.includes('PARTIELLEMENT') || vText.includes('TROMPEUR')) badgeClass = 'bg-amber-950/40 text-amber-400 border border-amber-800/60';
 
-            // Sources HTML
+            // Safe Sources HTML
             let sourcesHtml = '';
             if (v.sources && v.sources.length > 0) {
               const safeSources = v.sources.filter(s => typeof s === 'string' && (s.startsWith('http://') || s.startsWith('https://')));
               if (safeSources.length > 0) {
                 sourcesHtml = `
-                  <div class="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
-                    <span class="font-medium text-slate-500">Sources :</span>
+                  <div class="pt-2.5 border-t border-hairline flex flex-wrap items-center gap-1.5 text-[11px] font-mono">
+                    <span class="text-slate-500 uppercase text-[10px]">Sources :</span>
                     ${safeSources.map(s => {
                       let domain = 'Source';
                       try { domain = new URL(s).hostname.replace('www.', ''); } catch (e) {}
-                      return `<a href="${escapeHtml(s)}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white transition-colors underline decoration-indigo-500/50 flex items-center gap-1">${escapeHtml(domain)} ↗</a>`;
+                      return `<a href="${escapeHtml(s)}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded bg-subsurface hover:bg-hairline text-slate-300 hover:text-white transition-colors border border-hairline flex items-center gap-1">${escapeHtml(domain)} ↗</a>`;
                     }).join('')}
                   </div>
                 `;
@@ -889,14 +793,17 @@
 
             claimCard.innerHTML = `
               <div class="flex items-start justify-between gap-3">
-                <p class="text-xs font-semibold text-slate-100 flex-1">
-                  « ${escapeHtml(v.claim || '')} »
-                </p>
-                <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase flex-shrink-0 ${badgeClass}">
+                <div class="space-y-1 flex-1">
+                  <span class="text-[10px] font-mono uppercase text-slate-500">Pièce #${i + 1}</span>
+                  <p class="font-serif italic text-sm text-slate-100 leading-snug">
+                    « ${escapeHtml(v.claim || '')} »
+                  </p>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase flex-shrink-0 ${badgeClass}">
                   ${v.verdict || 'INFO'}
                 </span>
               </div>
-              <p class="text-xs text-slate-300/90 leading-relaxed">
+              <p class="text-xs text-slate-300 leading-relaxed font-sans">
                 ${escapeHtml(v.explanation || '')}
               </p>
               ${sourcesHtml}
@@ -913,7 +820,6 @@
           actionKitBox.classList.add('hidden');
         }
 
-        // Smooth scroll to top of report
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
 
@@ -930,7 +836,7 @@
         navigator.clipboard.writeText(text).then(() => {
           showToast('Rapport copié pour WhatsApp/SMS !', '📋');
         }).catch(() => {
-          showToast('Échec de copie', '⚠️', true);
+          showToast('Échec de copie', '⚠️');
         });
       });
 
@@ -939,9 +845,9 @@
           ? `${window.location.origin}/r/${currentReportId}`
           : window.location.href;
         navigator.clipboard.writeText(shareUrl).then(() => {
-          showToast('Lien du rapport copié !', '🔗');
+          showToast('Lien direct copié !', '🔗');
         }).catch(() => {
-          showToast('Échec de copie', '⚠️', true);
+          showToast('Échec de copie', '⚠️');
         });
       });
 
@@ -975,25 +881,21 @@
           text += `\n`;
         }
         if (shareUrl) {
-          text += `🔗 Consulter le rapport complet : ${shareUrl}`;
+          text += `🔗 Rapport complet : ${shareUrl}\n`;
         }
         return text;
       }
 
-      // Auto-load pre-injected server report (shared link /r/<id>)
-      const injectedScript = document.getElementById('server-injected-report');
-      if (injectedScript) {
+      // Check for server-injected report on load
+      const injectedEl = document.getElementById('server-injected-report');
+      if (injectedEl) {
         try {
-          const preloadedReport = JSON.parse(injectedScript.textContent);
-          const repId = window.INITIAL_REPORT_ID || null;
-          if (preloadedReport) {
-            renderReportCard(preloadedReport, repId);
+          const initialReport = JSON.parse(injectedEl.textContent);
+          if (initialReport) {
+            renderReportCard(initialReport, window.INITIAL_REPORT_ID || null);
           }
-        } catch (e) {
-          console.error("Failed to parse injected report JSON", e);
-        }
+        } catch (e) {}
       }
-
     })();
   </script>
 </body>

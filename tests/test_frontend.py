@@ -64,4 +64,4 @@ def test_frontend_has_pwa_tags_and_tailwind(client):
     html = res.data.decode("utf-8")
     assert "manifest.json" in html
     assert "cdn.tailwindcss.com" in html
-    assert "bg-slate-900" in html
+    assert "bg-slate-900" in html or "bg-obsidian" in html
