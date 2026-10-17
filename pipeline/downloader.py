@@ -36,6 +36,20 @@ class DownloadResult:
     error: Optional[str] = None
 
 
+def _generate_code_variations(code: str) -> list[str]:
+    """Generate common font/OCR disambiguation variations for Instagram shortcodes (I vs l)."""
+    variations: set[str] = set()
+    for idx, ch in enumerate(code):
+        if ch == "I":
+            variations.add(code[:idx] + "l" + code[idx + 1 :])
+        elif ch == "l":
+            variations.add(code[:idx] + "I" + code[idx + 1 :])
+    variations.add(code.replace("I", "l"))
+    variations.add(code.replace("l", "I"))
+    variations.discard(code)
+    return list(variations)
+
+
 def download_reel_audio(url: str, output_dir: str) -> DownloadResult:
     """Download an Instagram Reel and extract its audio as an MP3 file.
 
@@ -113,6 +127,31 @@ def download_reel_audio(url: str, output_dir: str) -> DownloadResult:
                     if os.path.getsize(candidate) > 0:
                         logger.info("Found downloaded media file: %s", candidate)
                         return DownloadResult(audio_path=candidate, success=True, error=None)
+
+        # Check if shortcode contains ambiguous characters (e.g. I vs l)
+        import re
+
+        m = re.search(r"/(?:reel|reels|p)/([a-zA-Z0-9_-]+)", url)
+        if m:
+            orig_code = m.group(1)
+            for alt_code in _generate_code_variations(orig_code):
+                alt_url = url.replace(orig_code, alt_code)
+                try:
+                    logger.info("Attempting shortcode disambiguation: %s -> %s", orig_code, alt_code)
+                    with yt_dlp.YoutubeDL(ydl_opts) as alt_ydl:
+                        alt_info = alt_ydl.extract_info(alt_url, download=True)
+                    alt_id = alt_info.get("id") if isinstance(alt_info, dict) else alt_code
+                    alt_mp3 = os.path.join(output_dir, f"{alt_id}.mp3")
+                    if os.path.exists(alt_mp3):
+                        logger.info("Successfully recovered audio with disambiguated URL: %s", alt_url)
+                        return DownloadResult(audio_path=alt_mp3, success=True, error=None)
+                    for fname in os.listdir(output_dir):
+                        if fname.startswith(str(alt_id)):
+                            candidate = os.path.join(output_dir, fname)
+                            if os.path.isfile(candidate) and os.path.getsize(candidate) > 0:
+                                return DownloadResult(audio_path=candidate, success=True, error=None)
+                except Exception as alt_exc:
+                    logger.debug("Disambiguation %s failed: %s", alt_code, alt_exc)
 
         logger.error(f"Error downloading reel audio from {url}: {e}", exc_info=True)
         return DownloadResult(
