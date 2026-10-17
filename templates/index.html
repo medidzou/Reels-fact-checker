@@ -263,6 +263,99 @@
       </div>
     </div>
 
+    <!-- TECH REEL AUDIT SECTION (Swiss Anti-AI-Slop) -->
+    <div id="tech-audit-section" class="hidden my-8 space-y-5">
+      <!-- HEADER CARD -->
+      <div class="p-6 rounded bg-surface border border-hairline space-y-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-hairline pb-4">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+            <span class="text-xs font-mono font-bold tracking-wider uppercase text-sky-400">⚡ REEL TECH & REPO DÉTECTÉ</span>
+          </div>
+          <span class="text-[11px] font-mono text-slate-500">TRAITEMENT EXPRESS : ~5s</span>
+        </div>
+
+        <div>
+          <h2 id="tech-title" class="text-lg font-display font-semibold text-white mb-1.5">Outil / Repo identifié</h2>
+          <p id="tech-summary-text" class="text-sm text-slate-300 leading-relaxed font-sans"></p>
+        </div>
+
+        <!-- CONTEXT MACHINE INJECTÉ -->
+        <div class="p-3.5 rounded bg-subsurface border border-hairline border-l-2 border-l-sky-400 text-xs font-mono space-y-1">
+          <div class="text-[10px] uppercase font-bold text-sky-400 tracking-wider">Contexte Machine & Cyberdéfense</div>
+          <div class="text-slate-300">
+            Windows 11 • Intel Core i5-1035G1 • 24 Go RAM • GPU : Aucun (CPU Only)
+          </div>
+          <div class="text-slate-400 text-[11px]">
+            Audit de sécurité : détection de malwares, vol de clés API et prompt injections.
+          </div>
+        </div>
+      </div>
+
+      <!-- 1-CLICK ACTION BUTTONS -->
+      <div class="p-5 rounded bg-surface border border-hairline space-y-3">
+        <div class="text-[11px] font-mono uppercase font-semibold text-slate-400 tracking-wider">
+          Transférer l'audit complet vers votre IA en 1 clic :
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
+          <!-- ChatGPT -->
+          <a id="btn-chatgpt" href="#" target="_blank" rel="noopener noreferrer" class="p-3.5 rounded bg-subsurface hover:bg-hairline border border-emerald-500/40 hover:border-emerald-400 transition-colors flex items-center gap-3 text-slate-100">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+            <div>
+              <div class="font-semibold text-white">🟢 Ouvrir dans ChatGPT</div>
+              <div class="text-[10px] text-slate-400">Prompt pré-rempli ↗</div>
+            </div>
+          </a>
+
+          <!-- Claude -->
+          <a id="btn-claude" href="#" target="_blank" rel="noopener noreferrer" class="p-3.5 rounded bg-subsurface hover:bg-hairline border border-amber-500/40 hover:border-amber-400 transition-colors flex items-center gap-3 text-slate-100">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 flex-shrink-0"></span>
+            <div>
+              <div class="font-semibold text-white">🟠 Ouvrir dans Claude</div>
+              <div class="text-[10px] text-slate-400">Prompt pré-rempli ↗</div>
+            </div>
+          </a>
+
+          <!-- Gemini -->
+          <button id="btn-gemini" type="button" class="p-3.5 rounded bg-subsurface hover:bg-hairline border border-sky-500/40 hover:border-sky-400 transition-colors flex items-center gap-3 text-left cursor-pointer text-slate-100">
+            <span class="w-2.5 h-2.5 rounded-full bg-sky-400 flex-shrink-0"></span>
+            <div>
+              <div class="font-semibold text-white">🔵 Ouvrir dans Gemini</div>
+              <div class="text-[10px] text-slate-400">Copie le prompt & ouvre l'appli ↗</div>
+            </div>
+          </button>
+
+          <!-- Antigravity / Codex -->
+          <button id="btn-copy-tech-prompt" type="button" class="p-3.5 rounded bg-subsurface hover:bg-hairline border border-slate-600 hover:border-slate-400 transition-colors flex items-center gap-3 text-left cursor-pointer text-slate-100">
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-400 flex-shrink-0"></span>
+            <div>
+              <div class="font-semibold text-white">📋 Copier pour Antigravity / Codex</div>
+              <div class="text-[10px] text-slate-400">Prêt pour terminal & IDE 📋</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- TRANSCRIPTION REPLIABLE -->
+      <details class="p-4 rounded bg-surface border border-hairline font-mono text-xs text-slate-300">
+        <summary class="cursor-pointer font-semibold uppercase text-slate-400 hover:text-white transition-colors">
+          Afficher la transcription brute du Reel
+        </summary>
+        <div id="tech-transcript-full" class="mt-3 pt-3 border-t border-hairline text-slate-300 leading-relaxed font-sans whitespace-pre-wrap"></div>
+      </details>
+
+      <!-- NAVIGATION / RETOUR -->
+      <div class="flex items-center justify-between pt-2 font-mono text-xs">
+        <button id="tech-new-check-btn" type="button" class="py-2.5 px-4 rounded font-medium text-slate-400 hover:text-white bg-obsidian hover:bg-surface border border-hairline transition-colors cursor-pointer">
+          ↻ Vérifier un autre Reel
+        </button>
+        <button id="tech-share-btn" type="button" class="py-2.5 px-4 rounded font-medium text-white bg-surface hover:bg-subsurface border border-hairline transition-colors cursor-pointer">
+          🔗 Partager ce rapport
+        </button>
+      </div>
+    </div>
+
     <!-- REPORT CARD DISPLAY (Hidden during idle/loading) -->
     <div id="report-section" class="hidden my-8 space-y-6">
 
@@ -730,12 +823,89 @@
 
       // Render Report Card
       function renderReportCard(report, reportId) {
+        currentReport = report;
+        currentReportId = reportId || report.report_id || null;
+
+        const techSection = document.getElementById('tech-audit-section');
+
+        // If tech reel was short-circuited
+        if (report.is_tech && report.tech_prompt) {
+          progressSection.classList.add('hidden');
+          inputSection.classList.add('hidden');
+          reportSection.classList.add('hidden');
+          if (techSection) techSection.classList.remove('hidden');
+
+          const summaryEl = document.getElementById('tech-summary-text');
+          if (summaryEl) summaryEl.textContent = report.summary || "Outil ou repo identifié.";
+
+          const transcriptEl = document.getElementById('tech-transcript-full');
+          if (transcriptEl) transcriptEl.textContent = report.transcript || "Aucune transcription disponible.";
+
+          const links = report.deep_links || {};
+          const btnChatgpt = document.getElementById('btn-chatgpt');
+          const btnClaude = document.getElementById('btn-claude');
+          const btnGemini = document.getElementById('btn-gemini');
+          const btnCopyPrompt = document.getElementById('btn-copy-tech-prompt');
+
+          if (btnChatgpt && links.chatgpt) btnChatgpt.href = links.chatgpt;
+          if (btnClaude && links.claude) btnClaude.href = links.claude;
+
+          if (btnGemini) {
+            btnGemini.onclick = () => {
+              navigator.clipboard.writeText(report.tech_prompt).then(() => {
+                showToast('Prompt copié ! Ouverture de Gemini...', '🔵');
+                setTimeout(() => {
+                  window.open('https://gemini.google.com/app', '_blank');
+                }, 400);
+              }).catch(() => {
+                window.open('https://gemini.google.com/app', '_blank');
+              });
+            };
+          }
+
+          if (btnCopyPrompt) {
+            btnCopyPrompt.onclick = () => {
+              navigator.clipboard.writeText(report.tech_prompt).then(() => {
+                showToast('Prompt copié pour Antigravity / Codex !', '📋');
+              }).catch(() => {
+                showToast('Échec de la copie', '⚠️');
+              });
+            };
+          }
+
+          const techNewCheckBtn = document.getElementById('tech-new-check-btn');
+          if (techNewCheckBtn) {
+            techNewCheckBtn.onclick = () => {
+              if (techSection) techSection.classList.add('hidden');
+              inputSection.classList.remove('hidden');
+              clearAlert();
+              urlInput.value = '';
+              fileClearBtn.click();
+              window.history.pushState({}, '', '/');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+          }
+
+          const techShareBtn = document.getElementById('tech-share-btn');
+          if (techShareBtn) {
+            techShareBtn.onclick = () => {
+              const shareUrl = currentReportId 
+                ? `${window.location.origin}/r/${currentReportId}`
+                : window.location.href;
+              navigator.clipboard.writeText(shareUrl).then(() => {
+                showToast('Lien direct copié !', '🔗');
+              });
+            };
+          }
+
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+
+        if (techSection) techSection.classList.add('hidden');
         progressSection.classList.add('hidden');
         inputSection.classList.add('hidden');
         reportSection.classList.remove('hidden');
-
-        currentReport = report;
-        currentReportId = reportId || report.report_id || null;
 
         // Score Calculation
         const score = typeof report.score === 'number' ? report.score : 0;
