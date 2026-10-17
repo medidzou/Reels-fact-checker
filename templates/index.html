@@ -872,16 +872,19 @@
             // Sources HTML
             let sourcesHtml = '';
             if (v.sources && v.sources.length > 0) {
-              sourcesHtml = `
-                <div class="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
-                  <span class="font-medium text-slate-500">Sources :</span>
-                  ${v.sources.map(s => {
-                    let domain = 'Source';
-                    try { domain = new URL(s).hostname.replace('www.', ''); } catch (e) {}
-                    return `<a href="${s}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white transition-colors underline decoration-indigo-500/50 flex items-center gap-1">${domain} ↗</a>`;
-                  }).join('')}
-                </div>
-              `;
+              const safeSources = v.sources.filter(s => typeof s === 'string' && (s.startsWith('http://') || s.startsWith('https://')));
+              if (safeSources.length > 0) {
+                sourcesHtml = `
+                  <div class="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
+                    <span class="font-medium text-slate-500">Sources :</span>
+                    ${safeSources.map(s => {
+                      let domain = 'Source';
+                      try { domain = new URL(s).hostname.replace('www.', ''); } catch (e) {}
+                      return `<a href="${escapeHtml(s)}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white transition-colors underline decoration-indigo-500/50 flex items-center gap-1">${escapeHtml(domain)} ↗</a>`;
+                    }).join('')}
+                  </div>
+                `;
+              }
             }
 
             claimCard.innerHTML = `
@@ -967,7 +970,7 @@
         if (report.verdicts && report.verdicts.length > 0) {
           text += `⚖️ Faits analysés :\n`;
           report.verdicts.forEach(v => {
-            text += `• « ${v.claim} » : ${v.verdict}\n  ${v.explanation}\n`;
+            text += `• « ${v.claim || ''} » : ${v.verdict || ''}\n  ${v.explanation || ''}\n`;
           });
           text += `\n`;
         }
