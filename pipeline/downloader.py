@@ -90,6 +90,15 @@ def download_reel_audio(url: str, output_dir: str) -> DownloadResult:
             "no_warnings": True,
         }
 
+        cookie_path = os.environ.get("INSTAGRAM_COOKIES_FILE")
+        cookie_content = os.environ.get("INSTAGRAM_COOKIES")
+        if not cookie_path and cookie_content:
+            cookie_path = os.path.join(output_dir, "cookies.txt")
+            with open(cookie_path, "w", encoding="utf-8") as f:
+                f.write(cookie_content)
+        if cookie_path and os.path.exists(cookie_path):
+            ydl_opts["cookiefile"] = cookie_path
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
 
