@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: reelcheck
+    runtime: docker
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: WEBHOOK_URL
+        sync: false
+      - key: PYTHONUNBUFFERED
+        value: "1"

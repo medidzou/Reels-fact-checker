@@ -1,0 +1,10 @@
+python-telegram-bot==21.6
+flask==3.1.0
+gunicorn==23.0.0
+yt-dlp==2025.1.26
+google-genai==1.14.0
+duckduckgo-search==7.5.0
+groq==0.15.0
+pydub==0.25.1
+static-ffmpeg>=2.5
+pytest==8.3.0
