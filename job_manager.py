@@ -11,7 +11,9 @@ import uuid
 
 from pipeline.downloader import download_reel_audio, save_telegram_audio
 from pipeline.factchecker import fact_check_claims
-from pipeline.transcriber import transcribe_and_extract
+from pipeline.tech_classifier import is_tech_content
+from pipeline.tech_prompt import generate_audit_prompt, generate_deep_links
+from pipeline.transcriber import TranscriptionResult, transcribe_and_extract
 
 logger = logging.getLogger(__name__)
 
@@ -204,7 +206,29 @@ def _build_result_dict(transcription: Any, factcheck: Any) -> dict[str, Any]:
     }
 
 
-def process_url_job(job_mgr: JobManager, job_id: str, url: str) -> None:
+def _build_tech_result_dict(transcription: TranscriptionResult) -> dict[str, Any]:
+    """Assemble an immediate tech audit report with deep links without heavy factchecking."""
+    prompt = generate_audit_prompt(transcription.transcript)
+    links = generate_deep_links(prompt)
+    return {
+        "summary": transcription.summary,
+        "transcript": transcription.transcript,
+        "is_tech": True,
+        "tech_prompt": prompt,
+        "deep_links": links,
+        "score": None,
+        "verdict": "REEL TECH DÉTECTÉ",
+        "explanation": (
+            "Ce contenu a été identifié comme un Reel présentant un outil, repo ou prompt. "
+            "Utilisez les boutons ci-dessous pour lancer l'audit technique et cybersécurité sur votre IA préférée."
+        ),
+        "claims": transcription.claims,
+        "verdicts": [],
+        "action_kit": None,
+    }
+
+
+def process_url_job(job_mgr: JobManager, job_id: str, url: str, force_full: bool = False) -> None:
     """Execute download, transcription, and factchecking for an Instagram URL."""
     job_mgr.update_job(job_id, status="processing", stage="downloading")
     try:
@@ -231,6 +255,13 @@ def process_url_job(job_mgr: JobManager, job_id: str, url: str) -> None:
                 )
                 return
 
+            # Short-circuit if tech reel is detected
+            is_tech = bool(transcription.is_tech or is_tech_content(transcription.transcript))
+            if is_tech and not force_full:
+                result = _build_tech_result_dict(transcription)
+                job_mgr.update_job(job_id, status="completed", stage="completed", result=result)
+                return
+
             job_mgr.update_job(job_id, status="processing", stage="factchecking")
             factcheck = fact_check_claims(
                 transcription.claims,
@@ -251,6 +282,7 @@ def process_upload_job(
     job_id: str,
     file_bytes: bytes,
     filename: Optional[str] = None,
+    force_full: bool = False,
 ) -> None:
     """Execute transcription and factchecking for an uploaded audio/video file."""
     job_mgr.update_job(job_id, status="processing", stage="transcribing")
@@ -274,6 +306,13 @@ def process_upload_job(
                     stage="transcribing",
                     error=f"Erreur de transcription : {transcription.error}",
                 )
+                return
+
+            # Short-circuit if tech reel is detected
+            is_tech = bool(transcription.is_tech or is_tech_content(transcription.transcript))
+            if is_tech and not force_full:
+                result = _build_tech_result_dict(transcription)
+                job_mgr.update_job(job_id, status="completed", stage="completed", result=result)
                 return
 
             job_mgr.update_job(job_id, status="processing", stage="factchecking")
