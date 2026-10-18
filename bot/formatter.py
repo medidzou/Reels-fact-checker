@@ -213,21 +213,64 @@ def format_response(
     return split_message(full_text, max_len=4096)
 
 
+def format_dispatch_response(
+    transcription: TranscriptionResult,
+    category: str = "general",
+    category_label: Optional[str] = None,
+    share_url: Optional[str] = None,
+) -> list[str]:
+    """Format an immediate categorized notification with direct 1-click AI links."""
+    category_emojis = {
+        "tech": "⚡",
+        "cooking": "🍳",
+        "health": "🌿",
+        "debate": "⚖️",
+        "general": "🔍",
+    }
+    emoji = category_emojis.get(category, "🔍")
+    label = category_label or category.upper()
+
+    category_descriptions = {
+        "tech": "💻 **Audit Machine & Cybersécurité disponible** (Win11 / i5 / 24 Go).\nCe Reel a été identifié comme présentant un outil, repo ou prompt.",
+        "cooking": "🍳 **Extraction recette, ingrédients & calories disponible**.",
+        "health": "🌿 **Fact-checking médical & consensus scientifique disponible**.",
+        "debate": "⚖️ **Analyse des sophismes (fallacies) & arbitrage disponible**.",
+        "general": "🔍 **Fact-checking factuel sourcé disponible**.",
+    }
+    desc = category_descriptions.get(category, category_descriptions["general"])
+
+    category_headers = {
+        "tech": "⚡ **REEL TECH & OUTIL DÉTECTÉ**",
+        "cooking": "🍳 **CUISINE & RECETTE DÉTECTÉE**",
+        "health": "🌿 **SANTÉ & BIEN-ÊTRE DÉTECTÉ**",
+        "debate": "⚖️ **DÉBAT & RHÉTORIQUE DÉTECTÉ**",
+        "general": "🔍 **VÉRIFICATION FACTUELLE DÉTECTÉE**",
+    }
+    header = category_headers.get(category, f"{emoji} **{label.upper()}**")
+
+    lines = [
+        header,
+        "",
+        f"📌 **Résumé** : {transcription.summary or 'Contenu analysé.'}",
+        "",
+        desc,
+    ]
+    if share_url:
+        lines.append(f"\n👉 **[Ouvrir l'analyse 1-clic (ChatGPT, Claude, Gemini)]({share_url})**")
+
+    return split_message("\n".join(lines), max_len=4096)
+
+
 def format_tech_response(
     transcription: TranscriptionResult,
     share_url: Optional[str] = None,
 ) -> list[str]:
     """Format an immediate concise notification for Tech Reels with direct web link."""
-    lines = [
-        "⚡ **REEL TECH & OUTIL DÉTECTÉ**",
-        "",
-        f"📌 **Résumé** : {transcription.summary or 'Outil / Repo identifié.'}",
-        "",
-        "💻 **Audit Machine (i5 / 24 Go / Win11) & Cyberdéfense disponible**.",
-        "Ce Reel a été identifié comme présentant un outil, repo ou prompt.",
-    ]
-    if share_url:
-        lines.append(f"\n👉 **[Ouvrir l'audit 1-clic (ChatGPT, Claude, Gemini)]({share_url})**")
+    return format_dispatch_response(
+        transcription,
+        category="tech",
+        category_label="Tech, IA & Outils Développeur",
+        share_url=share_url,
+    )
 
-    return split_message("\n".join(lines), max_len=4096)
 

@@ -224,41 +224,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
             return
 
-        # Check if Tech Reel (Short-circuit for instant response)
-        from pipeline.tech_classifier import is_tech_content
-        from pipeline.tech_prompt import build_tech_report_dict
+        # Universal AI Dispatch: Instant categorized response with 1-click links
+        from pipeline.prompt_generator import build_dispatch_report
         from storage import save_report
-        from bot.formatter import format_tech_response
+        from bot.formatter import format_dispatch_response
 
-        is_tech = bool(transcription.is_tech or is_tech_content(transcription.transcript))
-        if is_tech:
-            tech_report = build_tech_report_dict(transcription)
-            report_id = save_report(tech_report)
-            raw_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("WEBHOOK_URL", "")
-            base_url = raw_url.rstrip("/") if raw_url else ""
-            share_url = f"{base_url}/r/{report_id}" if base_url else f"/r/{report_id}"
-            tech_msgs = format_tech_response(transcription, share_url=share_url)
-            for msg in tech_msgs:
-                await update.message.reply_text(msg)
-            return
+        dispatch_report = build_dispatch_report(transcription)
+        report_id = save_report(dispatch_report)
+        raw_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("WEBHOOK_URL", "")
+        base_url = raw_url.rstrip("/") if raw_url else ""
+        share_url = f"{base_url}/r/{report_id}" if base_url else f"/r/{report_id}"
 
-        # 4. Fact-check claims and format response with friendly error handling
-        try:
-            factcheck = fact_check_claims(transcription.claims, transcription.is_tech)
-
-            # 5. Format response according to user mode
-            mode = get_user_mode(chat_id)
-            messages = format_response(transcription, factcheck, mode=mode)
-
-            # 6. Send sequential messages
-            for msg in messages:
-                await update.message.reply_text(msg)
-        except Exception as pipe_err:
-            logger.error("Downstream pipeline failure: %s", pipe_err, exc_info=True)
-            await update.message.reply_text(
-                "❌ Une erreur est survenue lors de l'analyse des affirmations. "
-                "Veuillez réessayer dans quelques instants."
-            )
+        msgs = format_dispatch_response(
+            transcription,
+            category=dispatch_report.get("category", "general"),
+            category_label=dispatch_report.get("category_label"),
+            share_url=share_url,
+        )
+        for msg in msgs:
+            await update.message.reply_text(msg)
+        return
 
 
 def register_handlers(application: Application) -> None:
