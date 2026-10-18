@@ -11,6 +11,7 @@ import uuid
 
 from pipeline.downloader import download_reel_audio, save_telegram_audio
 from pipeline.factchecker import fact_check_claims
+from pipeline.prompt_generator import build_dispatch_report
 from pipeline.tech_classifier import is_tech_content
 from pipeline.tech_prompt import build_tech_report_dict
 from pipeline.transcriber import TranscriptionResult, transcribe_and_extract
@@ -253,10 +254,10 @@ def process_url_job(job_mgr: JobManager, job_id: str, url: str, force_full: bool
                 )
                 return
 
-            # Short-circuit if tech reel is detected
-            is_tech = bool(transcription.is_tech or is_tech_content(transcription.transcript))
-            if is_tech and not force_full:
-                result = _build_tech_result_dict(transcription)
+            # Direct AI Dispatch: Categorize Reel and generate tailored prompt + deep links
+            # Bypasses internal DuckDuckGo search/factchecking for instant response
+            if not force_full:
+                result = build_dispatch_report(transcription)
                 job_mgr.update_job(job_id, status="completed", stage="completed", result=result)
                 return
 
@@ -306,10 +307,10 @@ def process_upload_job(
                 )
                 return
 
-            # Short-circuit if tech reel is detected
-            is_tech = bool(transcription.is_tech or is_tech_content(transcription.transcript))
-            if is_tech and not force_full:
-                result = _build_tech_result_dict(transcription)
+            # Direct AI Dispatch: Categorize Reel and generate tailored prompt + deep links
+            # Bypasses internal DuckDuckGo search/factchecking for instant response
+            if not force_full:
+                result = build_dispatch_report(transcription)
                 job_mgr.update_job(job_id, status="completed", stage="completed", result=result)
                 return
 
