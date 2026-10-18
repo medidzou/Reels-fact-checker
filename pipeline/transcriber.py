@@ -69,30 +69,49 @@ def _parse_claims_block(claims_raw: str) -> list[str]:
         try:
             parsed = json.loads(bracketed)
             if isinstance(parsed, list):
-                return [str(c).strip() for c in parsed if str(c).strip()]
+                return [str(c).strip() for c in parsed if len(str(c).strip()) >= 5]
         except Exception:
-            try:
-                parsed = ast.literal_eval(bracketed)
-                if isinstance(parsed, list):
-                    return [str(c).strip() for c in parsed if str(c).strip()]
-            except Exception:
-                pass
+            pass
+
+        # Robust handling for French elisions inside single-quoted strings:
+        # e.g. ['Les deux tiers...', 'L\'accueil...', 'd\'euros...'] or ['...','L'accueil...']
+        # Protect intra-word apostrophes (L'accueil -> L__APOS__accueil) before converting string quotes
+        try:
+            protected = re.sub(r"(\w)[\'’](\w)", r"\1__APOS__\2", bracketed)
+            safe_json = re.sub(r"(?<=[\s,\[])\'|\'(?=[\s,\]])", '"', protected)
+            safe_json = safe_json.replace("__APOS__", "'")
+            parsed = json.loads(safe_json)
+            if isinstance(parsed, list):
+                return [str(c).strip() for c in parsed if len(str(c).strip()) >= 5]
+        except Exception:
+            pass
+
+        try:
+            parsed = ast.literal_eval(bracketed)
+            if isinstance(parsed, list):
+                return [str(c).strip() for c in parsed if len(str(c).strip()) >= 5]
+        except Exception:
+            pass
 
     # Attempt 2: Bullet points or numbered lists (- claim, * claim, 1. claim)
     claims: list[str] = []
     lines = claims_raw.splitlines()
     for line in lines:
         line = line.strip()
-        if not line:
+        if not line or line in {"[", "]", "[]"}:
             continue
         # Strip bullets (- , * , • ) or numbering (1. , 1) )
         cleaned = re.sub(r"^(?:[-*•]|\d+[\.)])\s*", "", line).strip()
+        # Strip leading/trailing brackets or commas
+        cleaned = re.sub(r"^\[\s*", "", cleaned)
+        cleaned = re.sub(r"[\s,\]]+$", "", cleaned).strip()
         # Remove surrounding quotes if present
         if (cleaned.startswith('"') and cleaned.endswith('"')) or (
             cleaned.startswith("'") and cleaned.endswith("'")
         ):
             cleaned = cleaned[1:-1].strip()
-        if cleaned:
+        # Filter out accidental single-character tokens like 'L' or punctuation
+        if cleaned and len(cleaned) >= 5:
             claims.append(cleaned)
 
     return claims

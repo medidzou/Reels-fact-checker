@@ -184,22 +184,31 @@ def search_claim(claim: str, ddgs_client: Optional[Any] = None) -> str:
             raw_results = ddgs_client.text(clean_claim, max_results=3)
             all_results = list(raw_results or [])
         else:
-            # Production: try backends 'html' then 'lite' with timeout=10
-            for backend in ("html", "lite"):
-                try:
-                    raw_results = ddgs_client.text(clean_claim, max_results=5, backend=backend)
-                    if raw_results:
-                        all_results = list(raw_results)
-                        break
-                except Exception as b_err:
-                    logger.debug("DDGS backend %s failed for '%s': %s", backend, clean_claim, b_err)
+            # Production: try backends 'lite' then 'html' with timeout=10
+            # Test both original claim and elision-stripped claim (e.g. L'accueil -> accueil)
+            stripped_claim = re.sub(r"^[LlDdCcSsJjMmTt]['’]\s*", "", clean_claim).strip()
+            queries_to_try = [clean_claim]
+            if stripped_claim and stripped_claim.lower() != clean_claim.lower():
+                queries_to_try.append(stripped_claim)
+
+            for q in queries_to_try:
+                for backend in ("lite", "html"):
+                    try:
+                        raw_results = ddgs_client.text(q, max_results=5, backend=backend)
+                        if raw_results:
+                            all_results = list(raw_results)
+                            break
+                    except Exception as b_err:
+                        logger.debug("DDGS backend %s failed for '%s': %s", backend, q, b_err)
+                if all_results:
+                    break
 
             # If full sentence search returned nothing and claim is long, try simplified keyword query
-            if not all_results and len(clean_claim) > 50:
-                words = [w for w in re.sub(r"[^\w\s]", " ", clean_claim).split() if len(w) > 3][:6]
+            if not all_results and len(clean_claim) > 40:
+                words = [w for w in re.sub(r"[^\w\s]", " ", stripped_claim or clean_claim).split() if len(w) > 3][:6]
                 if words:
                     simplified_query = " ".join(words)
-                    for backend in ("html", "lite"):
+                    for backend in ("lite", "html"):
                         try:
                             raw_results = ddgs_client.text(simplified_query, max_results=5, backend=backend)
                             if raw_results:
@@ -209,19 +218,21 @@ def search_claim(claim: str, ddgs_client: Optional[Any] = None) -> str:
                             logger.debug("DDGS simplified query failed (%s): %s", backend, b_err)
 
         # In production mode: perform secondary targeted institutional query if applicable
-        if not is_mock and all_results:
+        if not is_mock:
             inst_query = _detect_institutional_query(clean_claim)
             if inst_query and inst_query.lower() != clean_claim.lower():
-                try:
-                    inst_results = ddgs_client.text(inst_query, max_results=3, backend="html")
-                    if inst_results:
-                        seen_hrefs = {item.get("href") for item in all_results if isinstance(item, dict)}
-                        for it in inst_results:
-                            if isinstance(it, dict) and it.get("href") not in seen_hrefs:
-                                all_results.append(it)
-                                seen_hrefs.add(it.get("href"))
-                except Exception as inst_err:
-                    logger.debug("Institutional search query failed: %s", inst_err)
+                for backend in ("lite", "html"):
+                    try:
+                        inst_results = ddgs_client.text(inst_query, max_results=3, backend=backend)
+                        if inst_results:
+                            seen_hrefs = {item.get("href") for item in all_results if isinstance(item, dict)}
+                            for it in inst_results:
+                                if isinstance(it, dict) and it.get("href") not in seen_hrefs:
+                                    all_results.append(it)
+                                    seen_hrefs.add(it.get("href"))
+                            break
+                    except Exception as inst_err:
+                        logger.debug("Institutional search query (%s) failed: %s", backend, inst_err)
 
         if all_results:
             formatted_items = []

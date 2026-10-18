@@ -238,3 +238,23 @@ def test_transcribe_and_extract_unsupported_media_extension(tmp_path):
     assert result.error is not None
     assert "Unsupported media format" in result.error
 
+
+def test_parse_claims_block_french_elision_apostrophe():
+    """Verify that claims with French elisions like L'accueil and d'euros are parsed completely without 'L' truncation."""
+    from pipeline.transcriber import _parse_claims_block
+
+    # Test case 1: Single quotes with French elisions
+    raw_single_quotes = "['Les deux tiers des étudiants ne valident pas', 'L\\'accueil des étudiants étrangers coûte 1 milliard d\\'euros']"
+    claims = _parse_claims_block(raw_single_quotes)
+    assert len(claims) == 2
+    assert "L'accueil des étudiants" in claims[1]
+    assert "1 milliard d'euros" in claims[1]
+    assert "L" not in claims  # Ensure no isolated 'L' token was created
+
+    # Test case 2: Unescaped apostrophe in single-quoted format
+    raw_unescaped = "['Les deux tiers', 'L'accueil des étudiants étrangers']"
+    claims_unescaped = _parse_claims_block(raw_unescaped)
+    assert len(claims_unescaped) >= 1
+    assert any("L'accueil" in c for c in claims_unescaped)
+    assert "L" not in claims_unescaped
+
