@@ -6,3 +6,8 @@ __pycache__/
 .venv/
 venv/
 data/
+.handoff
+*.handoff
+handoff.md
+EXPLICATION_PROJET.md
+*.log
