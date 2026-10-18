@@ -179,11 +179,16 @@ class RateLimiter:
 
 def _build_result_dict(transcription: Any, factcheck: Any) -> dict[str, Any]:
     """Helper to structure pipeline output into a clean JSON serializable dictionary."""
-    verdict_summary = "VRAI"
-    if any(v.verdict == "FAUX" for v in factcheck.verdicts):
+    if not getattr(factcheck, "verdicts", None):
+        verdict_summary = "AUCUNE AFFIRMATION FACTUELLE"
+    elif any(v.verdict == "FAUX" for v in factcheck.verdicts):
         verdict_summary = "FAUX"
     elif any(v.verdict == "PARTIELLEMENT VRAI" for v in factcheck.verdicts):
         verdict_summary = "PARTIELLEMENT VRAI"
+    elif any(v.verdict == "NON VÉRIFIABLE" for v in factcheck.verdicts):
+        verdict_summary = "NON VÉRIFIABLE"
+    else:
+        verdict_summary = "VRAI"
 
     return {
         "summary": transcription.summary,

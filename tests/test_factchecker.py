@@ -219,7 +219,7 @@ def test_synthesize_verdict_handles_exception():
     )
 
     assert verdict.claim == "Une affirmation quelconque"
-    assert verdict.verdict in {"VRAI", "FAUX", "PARTIELLEMENT VRAI"}
+    assert verdict.verdict == "NON VÉRIFIABLE"
     assert "API quota exceeded" in verdict.explanation or "Erreur" in verdict.explanation
 
 
@@ -289,8 +289,8 @@ def test_fact_check_claims_non_tech():
     assert len(result.verdicts) == 2
     assert result.verdicts[0].verdict == "VRAI"
     assert result.verdicts[1].verdict == "FAUX"
-    # Score: (10 + 0) / 2 = 5
-    assert result.reliability_score == 5
+    # Poison Rule: presence of FAUX caps score to <= 3 (instead of naive average (10+0)/2 = 5)
+    assert result.reliability_score <= 3
     assert result.action_kit is None
 
 
@@ -358,7 +358,8 @@ def test_normalize_verdict_variants():
     assert _normalize_verdict("FALSE") == "FAUX"
     assert _normalize_verdict("PARTIELLEMENT VRAI") == "PARTIELLEMENT VRAI"
     assert _normalize_verdict("Nuancé / Partiel") == "PARTIELLEMENT VRAI"
-    assert _normalize_verdict("INCONNU / INDETERMINE") == "PARTIELLEMENT VRAI"
+    assert _normalize_verdict("NON VÉRIFIABLE") == "NON VÉRIFIABLE"
+    assert _normalize_verdict("INCONNU / INDETERMINE") == "NON VÉRIFIABLE"
 
 
 def test_extract_urls_sanitization():
@@ -381,7 +382,7 @@ def test_synthesize_verdict_no_api_key(monkeypatch):
     """Test synthesize_verdict when GEMINI_API_KEY is not set."""
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     verdict = synthesize_verdict("Une claim sans API key", "Contexte")
-    assert verdict.verdict == "PARTIELLEMENT VRAI"
+    assert verdict.verdict == "NON VÉRIFIABLE"
     assert "GEMINI_API_KEY" in verdict.explanation
 
 
@@ -410,8 +411,35 @@ def test_parse_verdict_response_empty():
     from pipeline.factchecker import parse_verdict_response
 
     verdict = parse_verdict_response("", "Claim test")
-    assert verdict.verdict == "PARTIELLEMENT VRAI"
+    assert verdict.verdict == "NON VÉRIFIABLE"
     assert "Aucune réponse" in verdict.explanation
+
+
+def test_poison_rule_caps_score(monkeypatch):
+    """Test that a single FAUX claim caps reliability score to at most 3/10 even with 3 VRAI."""
+    from pipeline.factchecker import fact_check_claims, Verdict
+
+    monkeypatch.setattr(
+        "pipeline.factchecker.search_claim",
+        lambda *a, **k: "Context",
+    )
+    # Simulate 3 VRAI and 1 FAUX
+    responses = [
+        Verdict("Claim 1", "VRAI", "Vrai", []),
+        Verdict("Claim 2", "VRAI", "Vrai", []),
+        Verdict("Claim 3", "VRAI", "Vrai", []),
+        Verdict("Claim 4", "FAUX", "Faux toxique", []),
+    ]
+    resp_iter = iter(responses)
+    monkeypatch.setattr(
+        "pipeline.factchecker.synthesize_verdict",
+        lambda *a, **k: next(resp_iter),
+    )
+
+    result = fact_check_claims(["c1", "c2", "c3", "c4"], is_tech=False)
+    # Without poison rule, average would be (10+10+10+0)/4 = 7.5 -> 8
+    # With poison rule, it must be capped at 3
+    assert result.reliability_score <= 3
 
 
 def test_generate_action_kit_no_api_key(monkeypatch):

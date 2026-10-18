@@ -20,7 +20,7 @@ from pipeline.transcriber import (
 logger = logging.getLogger(__name__)
 
 DEFAULT_GROQ_WHISPER_MODEL = "whisper-large-v3-turbo"
-DEFAULT_GROQ_LLM_MODEL = "openai/gpt-oss-120b"
+DEFAULT_GROQ_LLM_MODEL = "llama-3.3-70b-versatile"
 
 GROQ_EXTRACTION_PROMPT = """Analyze this transcript from an Instagram Reel:
 
@@ -183,7 +183,7 @@ def groq_synthesize(
     if err or groq_client is None:
         return Verdict(
             claim=clean_claim,
-            verdict="PARTIELLEMENT VRAI",
+            verdict="NON VÉRIFIABLE",
             explanation=f"Erreur Groq: {err}",
             sources=_extract_urls(search_context),
         )
@@ -212,7 +212,7 @@ def groq_synthesize(
         logger.error("Groq verdict synthesis error for claim '%s': %s", clean_claim, exc, exc_info=True)
         return Verdict(
             claim=clean_claim,
-            verdict="PARTIELLEMENT VRAI",
+            verdict="NON VÉRIFIABLE",
             explanation=f"Erreur lors de la synthèse Groq: {exc}",
             sources=_extract_urls(search_context),
         )

@@ -10,7 +10,7 @@ from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
 EXTRACTION_PROMPT = """Analyze this audio recording from an Instagram Reel.
 Perform the following tasks:

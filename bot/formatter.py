@@ -18,6 +18,7 @@ VERDICT_EMOJIS = {
     "VRAI": "✅",
     "FAUX": "❌",
     "PARTIELLEMENT VRAI": "⚠️",
+    "NON VÉRIFIABLE": "❓",
 }
 
 

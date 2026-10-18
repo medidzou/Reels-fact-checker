@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
 SYNTHESIS_PROMPT = """Tu es un expert vérificateur de faits (Fact-Checker).
 Analyse l'affirmation suivante à la lumière des résultats de recherche web fournis.
@@ -21,15 +21,16 @@ Résultats de recherche :
 {search_context}
 
 Consignes :
-1. Détermine le VERDICT exact parmi ces 3 options strictes :
-   - VRAI : L'affirmation est factuellement exacte et vérifiée.
-   - FAUX : L'affirmation est fausse, trompeuse ou contredite.
+1. Détermine le VERDICT exact parmi ces 4 options strictes :
+   - VRAI : L'affirmation est factuellement exacte et vérifiée par des sources concordantes.
+   - FAUX : L'affirmation est fausse, trompeuse ou directement contredite.
    - PARTIELLEMENT VRAI : L'affirmation contient une part de vérité mais manque de contexte crucial, exagère ou mélange vrai et faux.
-2. Rédige une EXPLICATION claire, objective et nuancée en français expliquant pourquoi ce verdict est attribué.
+   - NON VÉRIFIABLE : Les résultats de recherche sont absents, insuffisants ou hors-sujet pour trancher avec certitude.
+2. Rédige une EXPLICATION claire, objective et nuancée en français expliquant pourquoi ce verdict est attribué. Si l'information est non vérifiable, indique ce qui manque.
 3. Liste les URL des SOURCES fiables confirmant ou réfutant l'affirmation.
 
 Format de réponse requis :
-VERDICT: <VRAI | FAUX | PARTIELLEMENT VRAI>
+VERDICT: <VRAI | FAUX | PARTIELLEMENT VRAI | NON VÉRIFIABLE>
 EXPLANATION: <ton explication>
 SOURCES:
 - <url 1>
@@ -92,15 +93,17 @@ def _get_gemini_client(client: Optional[Any] = None) -> tuple[Optional[Any], Opt
 
 
 def _normalize_verdict(raw_verdict: str) -> str:
-    """Normalize arbitrary verdict text into one of three canonical values."""
+    """Normalize arbitrary verdict text into one of four canonical values."""
     cleaned = raw_verdict.strip().upper()
-    if "PARTIEL" in cleaned or "PARTIAL" in cleaned or "NUANC" in cleaned:
-        return "PARTIELLEMENT VRAI"
-    if "FAUX" in cleaned or "FALSE" in cleaned or "INCORRECT" in cleaned or "TROMPEUR" in cleaned:
+    if any(k in cleaned for k in ["NON VÉRIFIABLE", "NON VERIFIABLE", "UNVERIFIABLE", "INSUFFISANT", "INSUFFICIENT"]):
+        return "NON VÉRIFIABLE"
+    if any(k in cleaned for k in ["FAUX", "FALSE", "INCORRECT"]):
         return "FAUX"
-    if "VRAI" in cleaned or "TRUE" in cleaned or "EXACT" in cleaned or "CORRECT" in cleaned:
+    if any(k in cleaned for k in ["PARTIEL", "PARTIAL", "NUANC", "TROMPEUR", "TROMPEUSE", "CHERRY-PICK"]):
+        return "PARTIELLEMENT VRAI"
+    if any(k in cleaned for k in ["VRAI", "TRUE", "EXACT", "CORRECT"]):
         return "VRAI"
-    return "PARTIELLEMENT VRAI"
+    return "NON VÉRIFIABLE"
 
 
 def _extract_urls(text: str) -> list[str]:
@@ -198,8 +201,8 @@ def parse_verdict_response(raw_text: str, claim: str) -> Verdict:
     if not raw_text or not raw_text.strip():
         return Verdict(
             claim=claim,
-            verdict="PARTIELLEMENT VRAI",
-            explanation="Aucune réponse d'analyse fournie.",
+            verdict="NON VÉRIFIABLE",
+            explanation="Aucune réponse d'analyse fournie par l'IA.",
             sources=[],
         )
 
@@ -305,6 +308,16 @@ def synthesize_verdict(
     """
     clean_claim = claim.strip() if claim else ""
 
+    # Étage 1 : Fast-check via Google Fact Check Tools API (ClaimReview IFCN)
+    try:
+        from pipeline.claim_review import query_claim_review
+
+        cr_verdict = query_claim_review(clean_claim)
+        if cr_verdict is not None:
+            return cr_verdict
+    except Exception as cr_err:
+        logger.debug("ClaimReview check skipped: %s", cr_err)
+
     def _fallback_or_verdict(err_msg: str) -> Verdict:
         if os.environ.get("GROQ_API_KEY") or groq_client is not None:
             logger.info("Gemini failed (%s), falling back to Groq synthesis...", err_msg)
@@ -313,8 +326,8 @@ def synthesize_verdict(
             return groq_synthesize(clean_claim, search_context, client=groq_client)
         return Verdict(
             claim=clean_claim,
-            verdict="PARTIELLEMENT VRAI",
-            explanation=err_msg,
+            verdict="NON VÉRIFIABLE",
+            explanation=f"Vérification impossible : {err_msg}",
             sources=_extract_urls(search_context),
         )
 
@@ -458,15 +471,24 @@ def fact_check_claims(
         except Exception as stage_err:
             logger.debug("on_stage_change callback error: %s", stage_err)
 
-    # Compute reliability score (0 to 10 scale)
+    # Compute reliability score (0 to 10 scale) with Poison Rule
     score_weights = {
         "VRAI": 10,
         "PARTIELLEMENT VRAI": 5,
+        "NON VÉRIFIABLE": 5,
         "FAUX": 0,
     }
     scores = [score_weights.get(v.verdict, 5) for v in verdicts]
     avg_score = round(sum(scores) / len(scores)) if scores else 10
     clamped_score = max(0, min(10, avg_score))
+
+    # POISON RULE: If any claim is FAUX, the overall reliability score cannot exceed 3 / 10
+    has_faux = any(v.verdict == "FAUX" for v in verdicts)
+    has_partiel = any(v.verdict == "PARTIELLEMENT VRAI" for v in verdicts)
+    if has_faux:
+        clamped_score = min(clamped_score, 3)
+    elif has_partiel:
+        clamped_score = min(clamped_score, 6)
 
     action_kit = None
     if is_tech:
