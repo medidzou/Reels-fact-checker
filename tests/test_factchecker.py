@@ -58,6 +58,16 @@ def test_search_claim_success():
     mock_ddgs.text.assert_called_once_with("Pourquoi le ciel est bleu", max_results=3)
 
 
+def test_detect_institutional_query():
+    """Verify that institutional keywords generate targeted queries."""
+    from pipeline.factchecker import _detect_institutional_query
+
+    assert "Cour des comptes" in (_detect_institutional_query("Selon la Cour des comptes le coût est de 1 milliard") or "")
+    assert "Légifrance" in (_detect_institutional_query("Le nouveau décret augmente les droits") or "")
+    assert "Insee" in (_detect_institutional_query("Le taux de pauvreté selon l'Insee est en hausse") or "")
+    assert _detect_institutional_query("La Terre tourne autour du Soleil") is None
+
+
 def test_search_claim_empty_or_no_results():
     """Test search with empty claim or no results returned."""
     mock_ddgs = MagicMock()

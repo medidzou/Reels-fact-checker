@@ -21,14 +21,16 @@ Résultats de recherche et contexte :
 {search_context}
 
 Règles d'analyse et d'épistémologie strictes :
-1. Hiérarchie des preuves : Privilégie les sources scientifiques indexées (PubMed, Nature, Science, Lancet), institutionnelles (INSERM, CNRS, INSEE, OMS, universités reconnues), agences de presse de référence (AFP Factuel, Reuters, AP) et documents officiels. Ignore les blogs d'opinion, sites complotistes ou forums non corroborés.
-2. Corrélation vs Causalité : Si l'affirmation transforme une simple corrélation ou une étude préliminaire (modèles animaux, éprouvette ou échantillon minime) en vérité absolue ou remède miracle, classe-la en "PARTIELLEMENT VRAI" ou "FAUX" et explicite le biais méthodologique.
-3. Ancrage temporel : Prends en compte la date de référence ({current_date}) pour interpréter correctement les événements récents sans anachronisme ni confusion.
-4. Non-déductibilité : Si les preuves sont absentes, contradictoires ou insuffisantes pour trancher avec certitude absolue, utilise impérativement "NON VÉRIFIABLE". Ne devine jamais.
+1. Hiérarchie des preuves : Privilégie les sources scientifiques indexées (PubMed, Nature, Science, Lancet), institutionnelles (Cour des comptes, Conseil d'État, INSERM, CNRS, INSEE, ministères), agences de presse de référence (AFP Factuel, Reuters, AP) et textes de lois/décrets officiels (Légifrance, Service-Public).
+2. Règle anti-scepticisme paresseux : Ne décrète JAMAIS qu'un chiffre précis, un audit public ou un texte de loi "n'existe pas" ou est "FAUX" simplement parce que les quelques extraits de recherche fournis ne le citent pas textuellement. Si l'affirmation cite un rapport d'audit public (ex. Cour des comptes), un décret récent ou un barème officiel, vérifie la vraisemblance de l'ordre de grandeur et distingue rigoureusement « contredit par les preuves » de « non trouvé dans les extraits ».
+3. Cohérence sociologique et démographique : Veille scrupuleusement à ne pas mélanger des populations différentes (ne confonds pas des collégiens ou des élèves PISA avec des étudiants universitaires, ni le régime des prêts étudiants américains avec l'enseignement supérieur français). Reste rigoureusement sur le périmètre défini par l'affirmation.
+4. Actualisation réglementaire (2024-2026) : Prends en compte les réformes et textes récents (notamment les décrets de 2026 revalorisant les frais universitaires ou encadrant les exonérations). Les anciens chiffres de 2019 ne doivent pas servir à juger faux des montants revalorisés en 2026.
+5. Corrélation vs Causalité : Si l'affirmation transforme une corrélation ou une étude préliminaire en vérité absolue, classe-la en "PARTIELLEMENT VRAI" ou "FAUX" et explicite le biais méthodologique.
+6. Non-déductibilité : Si les preuves sont totalement absentes, hors-sujet ou insuffisantes pour trancher avec certitude absolue, utilise impérativement "NON VÉRIFIABLE". Ne devine jamais.
 
 Format de réponse requis :
 VERDICT: <VRAI | FAUX | PARTIELLEMENT VRAI | NON VÉRIFIABLE>
-EXPLANATION: <ton explication objective, claire et nuancée>
+EXPLANATION: <ton explication objective, claire, nuancée et documentée>
 SOURCES:
 - <url 1>
 - <url 2>
@@ -129,8 +131,22 @@ def _extract_urls(text: str) -> list[str]:
     return cleaned_urls
 
 
+def _detect_institutional_query(claim: str) -> Optional[str]:
+    """Generate a targeted institutional query if official bodies or French legal terms are mentioned."""
+    lower = claim.lower()
+    if any(k in lower for k in ["cour des comptes", "chambre régionale des comptes"]):
+        return f"{claim} Cour des comptes"
+    if any(k in lower for k in ["décret", "loi", "code de l'éducation", "journal officiel", "légifrance", "arrêté"]):
+        return f"{claim} décret Légifrance"
+    if any(k in lower for k in ["insee", "taux de pauvreté", "chômage", "recensement"]):
+        return f"{claim} Insee"
+    if any(k in lower for k in ["étudiants étrangers", "frais d'inscription", "droits d'inscription", "bienvenue en france"]):
+        return f"{claim} frais inscription enseignement supérieur Légifrance"
+    return None
+
+
 def search_claim(claim: str, ddgs_client: Optional[Any] = None) -> str:
-    """Search DuckDuckGo for evidence related to the claim.
+    """Search DuckDuckGo for evidence related to the claim with institutional targeting.
 
     Args:
         claim: The factual claim to search.
@@ -144,6 +160,7 @@ def search_claim(claim: str, ddgs_client: Optional[Any] = None) -> str:
         return ""
 
     try:
+        is_mock = ddgs_client is not None
         if ddgs_client is None:
             try:
                 from ddgs import DDGS
@@ -156,12 +173,29 @@ def search_claim(claim: str, ddgs_client: Optional[Any] = None) -> str:
             import warnings
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*duckduckgo_search.*")
-                ddgs_client = DDGS(timeout=4)
+                ddgs_client = DDGS(timeout=5)
 
-        raw_results = ddgs_client.text(clean_claim, max_results=3)
-        if raw_results:
+        raw_results = ddgs_client.text(clean_claim, max_results=3 if is_mock else 5)
+        all_results = list(raw_results or [])
+
+        # In production mode: perform secondary targeted institutional query if applicable
+        if not is_mock:
+            inst_query = _detect_institutional_query(clean_claim)
+            if inst_query and inst_query.lower() != clean_claim.lower():
+                try:
+                    inst_results = ddgs_client.text(inst_query, max_results=3)
+                    if inst_results:
+                        seen_hrefs = {item.get("href") for item in all_results if isinstance(item, dict)}
+                        for it in inst_results:
+                            if isinstance(it, dict) and it.get("href") not in seen_hrefs:
+                                all_results.append(it)
+                                seen_hrefs.add(it.get("href"))
+                except Exception as inst_err:
+                    logger.debug("Institutional search query failed: %s", inst_err)
+
+        if all_results:
             formatted_items = []
-            for i, item in enumerate(raw_results, 1):
+            for i, item in enumerate(all_results, 1):
                 title = str(item.get("title", "")).strip()
                 href = str(item.get("href", "")).strip()
                 body = str(item.get("body", "")).strip()
