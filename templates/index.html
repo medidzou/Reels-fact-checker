@@ -921,13 +921,13 @@
               );
 
               if (isAndroid) {
-                // Android Chrome Intent: directly launches native Gemini app (com.google.android.apps.bard)
-                // Falls back cleanly to web page if app is not installed
-                window.location.href = "intent:#Intent;package=com.google.android.apps.bard;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end;";
+                // Intent targeting Google Gemini standalone app with googlegemini scheme
+                window.location.href = "intent://#Intent;package=com.google.android.apps.bard;scheme=googlegemini;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end;";
               } else if (isIOS) {
-                // iOS deep link to Google app Gemini tab with web fallback
-                window.location.href = "googleapp://robin";
+                // Standalone Google Gemini iOS app (googlegemini://)
+                window.location.href = "googlegemini://";
                 setTimeout(() => {
+                  // Fallback to Gemini web interface if standalone app is not installed
                   window.location.href = "https://gemini.google.com/app";
                 }, 1500);
               } else {
