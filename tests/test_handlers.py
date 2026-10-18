@@ -206,14 +206,13 @@ def test_handle_message_with_instagram_url_success(
     # 2. Pipeline invoked
     mock_download.assert_called_once()
     mock_transcribe.assert_called_once()
-    mock_factcheck.assert_called_once_with(["Claim A"], False)
+    mock_factcheck.assert_not_called()
 
     # 3. Replies sent: acknowledgment + formatted output
     assert update.message.reply_text.await_count >= 2
     all_replies = [call[0][0] for call in update.message.reply_text.call_args_list]
     assert any("Reel détecté" in r or "Traitement" in r for r in all_replies)
-    assert any("TRANSCRIPTION" in r for r in all_replies)
-    assert any("FACT-CHECK" in r for r in all_replies)
+    assert any("/r/" in r for r in all_replies)
 
 
 @patch("bot.handlers.download_reel_audio")
@@ -298,13 +297,13 @@ def test_handle_message_with_video_file_success(
 
     # Pipeline called
     mock_transcribe.assert_called_once()
-    mock_factcheck.assert_called_once()
+    mock_factcheck.assert_not_called()
 
     # Results delivered
     assert update.message.reply_text.await_count >= 2
     all_replies = [call[0][0] for call in update.message.reply_text.call_args_list]
     assert any("média reçu" in r or "Traitement" in r for r in all_replies)
-    assert any("TRANSCRIPTION" in r for r in all_replies)
+    assert any("/r/" in r for r in all_replies)
 
 
 def test_handle_message_with_video_file_media_error():
@@ -378,14 +377,14 @@ def test_handle_message_transcription_error(
 
 @patch("bot.handlers.download_reel_audio")
 @patch("bot.handlers.transcribe_and_extract")
-@patch("bot.handlers.fact_check_claims")
+@patch("storage.save_report")
 def test_handle_message_downstream_factcheck_error(
-    mock_factcheck,
+    mock_save_report,
     mock_transcribe,
     mock_download,
     tmp_path,
 ):
-    """Test handle_message returns friendly error when factcheck raises exception."""
+    """Test handle_message returns friendly error when downstream processing raises exception."""
     fake_audio = tmp_path / "audio.mp3"
     fake_audio.write_bytes(b"content")
     mock_download.return_value = DownloadResult(
@@ -396,7 +395,7 @@ def test_handle_message_downstream_factcheck_error(
         claims=["Claim 1"],
         is_tech=False,
     )
-    mock_factcheck.side_effect = RuntimeError("All LLM providers unavailable")
+    mock_save_report.side_effect = RuntimeError("All LLM providers unavailable")
 
     update = MagicMock()
     update.effective_chat = MagicMock()

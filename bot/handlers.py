@@ -225,25 +225,33 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             return
 
         # Universal AI Dispatch: Instant categorized response with 1-click links
-        from pipeline.prompt_generator import build_dispatch_report
-        from storage import save_report
-        from bot.formatter import format_dispatch_response
+        try:
+            from pipeline.prompt_generator import build_dispatch_report
+            from storage import save_report
+            from bot.formatter import format_dispatch_response
 
-        dispatch_report = build_dispatch_report(transcription)
-        report_id = save_report(dispatch_report)
-        raw_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("WEBHOOK_URL", "")
-        base_url = raw_url.rstrip("/") if raw_url else ""
-        share_url = f"{base_url}/r/{report_id}" if base_url else f"/r/{report_id}"
+            dispatch_report = build_dispatch_report(transcription)
+            report_id = save_report(dispatch_report)
+            raw_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("WEBHOOK_URL", "")
+            base_url = raw_url.rstrip("/") if raw_url else ""
+            share_url = f"{base_url}/r/{report_id}" if base_url else f"/r/{report_id}"
 
-        msgs = format_dispatch_response(
-            transcription,
-            category=dispatch_report.get("category", "general"),
-            category_label=dispatch_report.get("category_label"),
-            share_url=share_url,
-        )
-        for msg in msgs:
-            await update.message.reply_text(msg)
-        return
+            msgs = format_dispatch_response(
+                transcription,
+                category=dispatch_report.get("category", "general"),
+                category_label=dispatch_report.get("category_label"),
+                share_url=share_url,
+            )
+            for msg in msgs:
+                await update.message.reply_text(msg)
+            return
+        except Exception as pipe_err:
+            logger.error("Downstream pipeline failure: %s", pipe_err, exc_info=True)
+            await update.message.reply_text(
+                "❌ Une erreur est survenue lors de l'analyse des affirmations. "
+                "Veuillez réessayer dans quelques instants."
+            )
+            return
 
 
 def register_handlers(application: Application) -> None:

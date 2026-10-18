@@ -264,6 +264,7 @@ def test_run_job_integration_process_url_job(tmp_path):
             jm,
             jid,
             "https://www.instagram.com/reel/DehQF9lohPI/",
+            force_full=True,
         )
         t.join(timeout=5)
 
@@ -314,6 +315,7 @@ def test_run_job_integration_process_upload_job(tmp_path):
             jid,
             b"raw video bytes",
             "video.mp4",
+            force_full=True,
         )
         t.join(timeout=5)
 
