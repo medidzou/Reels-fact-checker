@@ -10,6 +10,7 @@ from pipeline.factchecker import (
     SYNTHESIS_PROMPT,
     Verdict,
     _extract_urls,
+    format_synthesis_prompt,
     parse_verdict_response,
 )
 from pipeline.transcriber import (
@@ -189,10 +190,7 @@ def groq_synthesize(
         )
 
     llm_model = os.environ.get("GROQ_LLM_MODEL", DEFAULT_GROQ_LLM_MODEL)
-    prompt = SYNTHESIS_PROMPT.format(
-        claim=clean_claim,
-        search_context=search_context or "Aucun résultat trouvé sur le web.",
-    )
+    prompt = format_synthesis_prompt(clean_claim, search_context)
 
     try:
         logger.info("Synthesizing verdict with Groq model %s for claim '%s'...", llm_model, clean_claim)

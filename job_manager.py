@@ -233,7 +233,17 @@ def process_url_job(job_mgr: JobManager, job_id: str, url: str, force_full: bool
 
             audio_path = dl_res.audio_path
             job_mgr.update_job(job_id, status="processing", stage="transcribing")
-            transcription = transcribe_and_extract(audio_path)
+
+            context_text = None
+            if dl_res.title or dl_res.description:
+                context_parts = []
+                if dl_res.title:
+                    context_parts.append(f"Titre: {dl_res.title}")
+                if dl_res.description:
+                    context_parts.append(f"Description: {dl_res.description}")
+                context_text = "\n".join(context_parts)
+
+            transcription = transcribe_and_extract(audio_path, context_text=context_text)
             if transcription.error:
                 job_mgr.update_job(
                     job_id,

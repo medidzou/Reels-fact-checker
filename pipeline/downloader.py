@@ -42,6 +42,8 @@ class DownloadResult:
     audio_path: Optional[str] = None
     success: bool = False
     error: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
 
 
 def _generate_code_variations(code: str) -> list[str]:
@@ -284,28 +286,34 @@ def download_reel_audio(url: str, output_dir: str) -> DownloadResult:
                     raise
 
         video_id = info.get("id") if isinstance(info, dict) else (shortcode or None)
+        title = info.get("title") if isinstance(info, dict) else None
+        description = info.get("description") if isinstance(info, dict) else None
         if not video_id:
             return DownloadResult(
                 audio_path=None,
                 success=False,
                 error="Could not extract video ID from Instagram URL",
+                title=title,
+                description=description,
             )
 
         expected_mp3 = os.path.join(output_dir, f"{video_id}.mp3")
         if os.path.exists(expected_mp3):
-            return DownloadResult(audio_path=expected_mp3, success=True, error=None)
+            return DownloadResult(audio_path=expected_mp3, success=True, error=None, title=title, description=description)
 
         # Fallback check for any file matching video_id in output_dir
         for fname in os.listdir(output_dir):
             if fname.startswith(str(video_id)) and fname.lower().endswith(VALID_MEDIA_EXTENSIONS):
                 candidate = os.path.join(output_dir, fname)
                 if os.path.isfile(candidate) and os.path.getsize(candidate) > 0:
-                    return DownloadResult(audio_path=candidate, success=True, error=None)
+                    return DownloadResult(audio_path=candidate, success=True, error=None, title=title, description=description)
 
         return DownloadResult(
             audio_path=None,
             success=False,
             error=f"Audio extraction completed but file not found for ID: {video_id}",
+            title=title,
+            description=description,
         )
 
     except Exception as e:

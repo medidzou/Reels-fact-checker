@@ -12,30 +12,39 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
-SYNTHESIS_PROMPT = """Tu es un expert vérificateur de faits (Fact-Checker).
-Analyse l'affirmation suivante à la lumière des résultats de recherche web fournis.
+SYNTHESIS_PROMPT = """Tu es un expert vérificateur de faits (Fact-Checker) forensique et rigoureux.
+Date de référence : {current_date}
 
-Affirmation : {claim}
+Affirmation à vérifier : {claim}
 
-Résultats de recherche :
+Résultats de recherche et contexte :
 {search_context}
 
-Consignes :
-1. Détermine le VERDICT exact parmi ces 4 options strictes :
-   - VRAI : L'affirmation est factuellement exacte et vérifiée par des sources concordantes.
-   - FAUX : L'affirmation est fausse, trompeuse ou directement contredite.
-   - PARTIELLEMENT VRAI : L'affirmation contient une part de vérité mais manque de contexte crucial, exagère ou mélange vrai et faux.
-   - NON VÉRIFIABLE : Les résultats de recherche sont absents, insuffisants ou hors-sujet pour trancher avec certitude.
-2. Rédige une EXPLICATION claire, objective et nuancée en français expliquant pourquoi ce verdict est attribué. Si l'information est non vérifiable, indique ce qui manque.
-3. Liste les URL des SOURCES fiables confirmant ou réfutant l'affirmation.
+Règles d'analyse et d'épistémologie strictes :
+1. Hiérarchie des preuves : Privilégie les sources scientifiques indexées (PubMed, Nature, Science, Lancet), institutionnelles (INSERM, CNRS, INSEE, OMS, universités reconnues), agences de presse de référence (AFP Factuel, Reuters, AP) et documents officiels. Ignore les blogs d'opinion, sites complotistes ou forums non corroborés.
+2. Corrélation vs Causalité : Si l'affirmation transforme une simple corrélation ou une étude préliminaire (modèles animaux, éprouvette ou échantillon minime) en vérité absolue ou remède miracle, classe-la en "PARTIELLEMENT VRAI" ou "FAUX" et explicite le biais méthodologique.
+3. Ancrage temporel : Prends en compte la date de référence ({current_date}) pour interpréter correctement les événements récents sans anachronisme ni confusion.
+4. Non-déductibilité : Si les preuves sont absentes, contradictoires ou insuffisantes pour trancher avec certitude absolue, utilise impérativement "NON VÉRIFIABLE". Ne devine jamais.
 
 Format de réponse requis :
 VERDICT: <VRAI | FAUX | PARTIELLEMENT VRAI | NON VÉRIFIABLE>
-EXPLANATION: <ton explication>
+EXPLANATION: <ton explication objective, claire et nuancée>
 SOURCES:
 - <url 1>
 - <url 2>
 """
+
+
+def format_synthesis_prompt(claim: str, search_context: str, current_date: Optional[str] = None) -> str:
+    """Format SYNTHESIS_PROMPT with temporal grounding and search evidence."""
+    import datetime
+
+    date_str = current_date or datetime.date.today().isoformat()
+    return SYNTHESIS_PROMPT.format(
+        current_date=date_str,
+        claim=claim,
+        search_context=search_context or "Aucun résultat trouvé sur le web.",
+    )
 
 ACTION_KIT_PROMPT = """Tu es un expert en ingénierie logicielle et IA.
 Les affirmations suivantes proviennent d'une vidéo technique ou IA qui a été analysée :
@@ -336,10 +345,7 @@ def synthesize_verdict(
         return _fallback_or_verdict(f"Erreur d'initialisation Gemini: {err}")
 
     model_name = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
-    prompt = SYNTHESIS_PROMPT.format(
-        claim=clean_claim,
-        search_context=search_context or "Aucun résultat trouvé sur le web.",
-    )
+    prompt = format_synthesis_prompt(clean_claim, search_context)
 
     try:
         response = client.models.generate_content(

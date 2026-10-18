@@ -16,7 +16,11 @@ EXTRACTION_PROMPT = """Analyze this audio recording from an Instagram Reel.
 Perform the following tasks:
 1. Provide an accurate, verbatim transcript of everything spoken in the audio.
 2. Provide a concise summary of the content (3 to 5 lines).
-3. Identify and extract ONLY verifiable factual claims (e.g. statistics, percentages, scientific studies, historical events, named facts, technical specs). Extract up to the 3 or 4 most important claims. Do NOT include subjective opinions, feelings, or vague advice.
+3. Identify and extract ONLY verifiable factual claims (e.g. statistics, percentages, scientific studies, historical events, named facts, technical specs). Extract up to 3 or 4 of the most important claims.
+   CRITICAL EXTRACTION RULES:
+   - Extract ONLY claims that the speaker is presenting as factual TRUTH. Do NOT extract myths, jokes, sarcasm, or statements the speaker is actively debunking or mocking.
+   - Every extracted claim MUST be completely self-contained: replace vague pronouns or relative references (e.g. "he", "this study", "this year", "this drug") with explicit named entities, dates, and locations so the claim can be searched and verified independently.
+   - Do NOT include purely subjective opinions, personal taste, emotional statements, or vague life advice.
 4. Determine whether the video is technical/AI/software-related (true or false).
 
 Output your response using EXACTLY this format:
@@ -197,6 +201,7 @@ def transcribe_and_extract(
     audio_path: str,
     client: Optional[Any] = None,
     groq_client: Optional[Any] = None,
+    context_text: Optional[str] = None,
 ) -> TranscriptionResult:
     """Transcribe an audio file and extract factual claims using Google Gemini API with Groq fallback.
 
@@ -204,6 +209,7 @@ def transcribe_and_extract(
         audio_path: Local filesystem path to the extracted audio file.
         client: Optional pre-configured genai.Client instance for dependency injection.
         groq_client: Optional pre-configured Groq client instance for fallback.
+        context_text: Optional additional text from post title, caption, or metadata.
 
     Returns:
         TranscriptionResult containing transcript, summary, claims, is_tech, and error.
@@ -250,11 +256,16 @@ def transcribe_and_extract(
         logger.info(f"Uploading audio file {audio_path} to Gemini...")
         uploaded_file = client.files.upload(file=audio_path)
 
+        # Build prompt, optionally enriched with post title/caption context
+        prompt = EXTRACTION_PROMPT
+        if context_text and context_text.strip():
+            prompt = f"{EXTRACTION_PROMPT}\n\nADDITIONAL POST CONTEXT (Title / Caption / Metadata):\n{context_text.strip()}"
+
         # Generate multimodal transcription and claim extraction
         logger.info(f"Requesting transcription and claim extraction with model {model_name}...")
         response = client.models.generate_content(
             model=model_name,
-            contents=[uploaded_file, EXTRACTION_PROMPT],
+            contents=[uploaded_file, prompt],
         )
 
         raw_text = response.text if hasattr(response, "text") and response.text else ""
