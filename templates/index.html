@@ -859,30 +859,81 @@
           if (btnClaude && links.claude) btnClaude.href = links.claude;
 
           const safeCopy = (text, successMsg, icon) => {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              return navigator.clipboard.writeText(text).then(() => {
-                showToast(successMsg, icon);
-              }).catch(() => {
-                showToast('Échec de la copie', '⚠️');
-              });
-            }
+            return new Promise((resolve) => {
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                  showToast(successMsg, icon);
+                  resolve(true);
+                }).catch(() => {
+                  fallbackCopy(text, successMsg, icon, resolve);
+                });
+              } else {
+                fallbackCopy(text, successMsg, icon, resolve);
+              }
+            });
+          };
+
+          const fallbackCopy = (text, successMsg, icon, resolve) => {
             try {
               const ta = document.createElement('textarea');
               ta.value = text;
+              ta.style.position = 'fixed';
+              ta.style.opacity = '0';
               document.body.appendChild(ta);
+              ta.focus();
               ta.select();
-              document.execCommand('copy');
+              const ok = document.execCommand('copy');
               document.body.removeChild(ta);
-              showToast(successMsg, icon);
-            } catch (e) {
-              showToast('Échec de la copie', '⚠️');
-            }
+              if (ok) {
+                showToast(successMsg, icon);
+                if (resolve) resolve(true);
+                return;
+              }
+            } catch (e) {}
+            showToast('Échec de la copie', '⚠️');
+            if (resolve) resolve(false);
           };
 
+          if (btnChatgpt) {
+            if (links.chatgpt) btnChatgpt.href = links.chatgpt;
+            btnChatgpt.onclick = () => {
+              safeCopy(report.tech_prompt, 'Prompt copié ! Ouverture de ChatGPT...', '🟢');
+            };
+          }
+
+          if (btnClaude) {
+            if (links.claude) btnClaude.href = links.claude;
+            btnClaude.onclick = () => {
+              safeCopy(report.tech_prompt, 'Prompt copié ! Ouverture de Claude...', '🟠');
+            };
+          }
+
           if (btnGemini) {
-            btnGemini.onclick = () => {
-              safeCopy(report.tech_prompt, 'Prompt copié ! Ouverture de Gemini...', '🔵');
-              window.open('https://gemini.google.com/app', '_blank');
+            btnGemini.onclick = async () => {
+              const ua = navigator.userAgent || '';
+              const isAndroid = /Android/i.test(ua);
+              const isIOS = /iPhone|iPad|iPod/i.test(ua);
+
+              await safeCopy(
+                report.tech_prompt,
+                (isAndroid || isIOS) ? "Prompt copié ! Lancement de l'appli Gemini..." : "Prompt copié ! Ouverture de Gemini...",
+                '🔵'
+              );
+
+              if (isAndroid) {
+                // Android Chrome Intent: directly launches native Gemini app (com.google.android.apps.bard)
+                // Falls back cleanly to web page if app is not installed
+                window.location.href = "intent:#Intent;package=com.google.android.apps.bard;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end;";
+              } else if (isIOS) {
+                // iOS deep link to Google app Gemini tab with web fallback
+                window.location.href = "googleapp://robin";
+                setTimeout(() => {
+                  window.location.href = "https://gemini.google.com/app";
+                }, 1500);
+              } else {
+                // Desktop / Windows / Mac: opens web interface in new tab
+                window.open('https://gemini.google.com/app', '_blank');
+              }
             };
           }
 
