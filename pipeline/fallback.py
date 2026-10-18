@@ -21,7 +21,7 @@ from pipeline.transcriber import (
 logger = logging.getLogger(__name__)
 
 DEFAULT_GROQ_WHISPER_MODEL = "whisper-large-v3-turbo"
-DEFAULT_GROQ_LLM_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_GROQ_LLM_MODEL = "openai/gpt-oss-120b"
 
 GROQ_EXTRACTION_PROMPT = """Analyze this transcript from an Instagram Reel:
 
@@ -92,14 +92,100 @@ def _get_groq_client(client: Optional[Any] = None) -> tuple[Optional[Any], Optio
         return None, f"Failed to initialize Groq client: {err}"
 
 
+def _call_groq_chat_completion(
+    groq_client: Any,
+    messages: list[dict[str, str]],
+    preferred_model: Optional[str] = None,
+) -> Any:
+    """Call Groq chat completions with automatic fallback across available models.
+
+    Tries preferred model (or GROQ_LLM_MODEL), then falls back sequentially
+    through active Groq models if model_not_found / decommissioned error occurs.
+    """
+    candidates = []
+    if preferred_model:
+        candidates.append(preferred_model)
+    env_model = os.environ.get("GROQ_LLM_MODEL")
+    if env_model and env_model not in candidates:
+        candidates.append(env_model)
+    for fallback_cand in [
+        DEFAULT_GROQ_LLM_MODEL,
+        "openai/gpt-oss-120b",
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "openai/gpt-oss-20b",
+        "qwen/qwen3.8-27b",
+    ]:
+        if fallback_cand not in candidates:
+            candidates.append(fallback_cand)
+
+    last_exc = None
+    for model_name in candidates:
+        try:
+            return groq_client.chat.completions.create(
+                model=model_name,
+                messages=messages,
+            )
+        except Exception as exc:
+            last_exc = exc
+            err_msg = str(exc).lower()
+            if any(k in err_msg for k in ["model_not_found", "does not exist", "not found", "decommissioned", "not supported"]):
+                logger.warning("Groq model %s unavailable (%s), trying next candidate...", model_name, exc)
+                continue
+            raise
+
+    if last_exc:
+        raise last_exc
+
+
+def _call_groq_whisper_transcription(
+    groq_client: Any,
+    filename: str,
+    file_bytes: bytes,
+    preferred_model: Optional[str] = None,
+) -> Any:
+    """Call Groq Whisper transcription with automatic fallback."""
+    candidates = []
+    if preferred_model:
+        candidates.append(preferred_model)
+    env_model = os.environ.get("GROQ_WHISPER_MODEL")
+    if env_model and env_model not in candidates:
+        candidates.append(env_model)
+    for fallback_cand in [
+        DEFAULT_GROQ_WHISPER_MODEL,
+        "whisper-large-v3-turbo",
+        "whisper-large-v3",
+    ]:
+        if fallback_cand not in candidates:
+            candidates.append(fallback_cand)
+
+    last_exc = None
+    for model_name in candidates:
+        try:
+            return groq_client.audio.transcriptions.create(
+                model=model_name,
+                file=(filename, file_bytes),
+            )
+        except Exception as exc:
+            last_exc = exc
+            err_msg = str(exc).lower()
+            if any(k in err_msg for k in ["model_not_found", "does not exist", "not found", "decommissioned"]):
+                logger.warning("Groq Whisper model %s unavailable (%s), trying next candidate...", model_name, exc)
+                continue
+            raise
+
+    if last_exc:
+        raise last_exc
+
+
 def groq_transcribe(
     audio_path: str,
     client: Optional[Any] = None,
 ) -> TranscriptionResult:
     """Fallback audio transcription + claim extraction using Groq Free Tier.
 
-    Uses whisper-large-v3-turbo for audio transcription and llama-3.3-70b-versatile
-    for claim extraction.
+    Uses whisper-large-v3-turbo for audio transcription and openai/gpt-oss-120b
+    (with llama fallback) for claim extraction.
 
     Args:
         audio_path: Local filesystem path to the audio file.
@@ -128,25 +214,29 @@ def groq_transcribe(
         )
 
     try:
-        # 1. Transcribe audio using Whisper
-        logger.info("Transcribing audio %s with Groq Whisper model %s...", audio_path, whisper_model)
+        # 1. Transcribe audio using Whisper with fallback
+        logger.info("Transcribing audio %s with Groq Whisper...", audio_path)
         with open(audio_path, "rb") as f:
-            transcription = groq_client.audio.transcriptions.create(
-                model=whisper_model,
-                file=(os.path.basename(audio_path), f.read()),
-            )
+            file_bytes = f.read()
+        transcription = _call_groq_whisper_transcription(
+            groq_client,
+            os.path.basename(audio_path),
+            file_bytes,
+            preferred_model=whisper_model,
+        )
         raw_transcript = getattr(transcription, "text", "") or ""
     except Exception as exc:
         logger.error("Groq Whisper transcription failed: %s", exc, exc_info=True)
         return TranscriptionResult(error=f"Groq Whisper transcription failed: {exc}")
 
     try:
-        # 2. Extract claims and metadata using Llama 3.3
-        logger.info("Extracting claims using Groq LLM model %s...", llm_model)
+        # 2. Extract claims and metadata using Groq LLM with fallback
+        logger.info("Extracting claims using Groq LLM (preferred: %s)...", llm_model)
         prompt = GROQ_EXTRACTION_PROMPT.format(transcript=raw_transcript)
-        chat_completion = groq_client.chat.completions.create(
-            model=llm_model,
-            messages=[{"role": "user", "content": prompt}],
+        chat_completion = _call_groq_chat_completion(
+            groq_client,
+            [{"role": "user", "content": prompt}],
+            preferred_model=llm_model,
         )
         chat_text = ""
         if hasattr(chat_completion, "choices") and chat_completion.choices:
@@ -169,7 +259,7 @@ def groq_synthesize(
     search_context: str,
     client: Optional[Any] = None,
 ) -> Verdict:
-    """Fallback verdict synthesis using Groq llama-3.3-70b-versatile.
+    """Fallback verdict synthesis using Groq (openai/gpt-oss-120b, llama, etc.).
 
     Args:
         claim: The factual claim to verify.
@@ -193,10 +283,11 @@ def groq_synthesize(
     prompt = format_synthesis_prompt(clean_claim, search_context)
 
     try:
-        logger.info("Synthesizing verdict with Groq model %s for claim '%s'...", llm_model, clean_claim)
-        chat_completion = groq_client.chat.completions.create(
-            model=llm_model,
-            messages=[{"role": "user", "content": prompt}],
+        logger.info("Synthesizing verdict with Groq (preferred: %s) for claim '%s'...", llm_model, clean_claim)
+        chat_completion = _call_groq_chat_completion(
+            groq_client,
+            [{"role": "user", "content": prompt}],
+            preferred_model=llm_model,
         )
         raw_text = ""
         if hasattr(chat_completion, "choices") and chat_completion.choices:
@@ -221,7 +312,7 @@ def groq_action_kit(
     search_contexts: list[str],
     client: Optional[Any] = None,
 ) -> Optional[str]:
-    """Fallback action kit generation using Groq llama-3.3-70b-versatile.
+    """Fallback action kit generation using Groq LLM models.
 
     Args:
         claims: List of technical claims.
@@ -254,10 +345,11 @@ def groq_action_kit(
     )
 
     try:
-        logger.info("Generating action kit with Groq model %s...", llm_model)
-        chat_completion = groq_client.chat.completions.create(
-            model=llm_model,
-            messages=[{"role": "user", "content": prompt}],
+        logger.info("Generating action kit with Groq (preferred: %s)...", llm_model)
+        chat_completion = _call_groq_chat_completion(
+            groq_client,
+            [{"role": "user", "content": prompt}],
+            preferred_model=llm_model,
         )
         if hasattr(chat_completion, "choices") and chat_completion.choices:
             text = getattr(chat_completion.choices[0].message, "content", "")

@@ -1,5 +1,3 @@
-"""Flask application for ReelCheck Telegram Bot webhook."""
-
 import asyncio
 import logging
 import mimetypes
@@ -413,6 +411,13 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
 
 
 if __name__ == "__main__":
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+    except ImportError:
+        pass
+
     logging.basicConfig(
         level=logging.INFO,
         format="[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s",
@@ -421,4 +426,5 @@ if __name__ == "__main__":
     logger.info("Starting ReelCheck Telegram Webhook server on port %d...", port)
     app = create_app()
     app.run(host="0.0.0.0", port=port)
+
 

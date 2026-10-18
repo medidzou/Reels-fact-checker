@@ -10,7 +10,7 @@ from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
 
 EXTRACTION_PROMPT = """Analyze this audio recording from an Instagram Reel.
 Perform the following tasks:
@@ -18,8 +18,9 @@ Perform the following tasks:
 2. Provide a concise summary of the content (3 to 5 lines).
 3. Identify and extract ONLY verifiable factual claims (e.g. statistics, percentages, scientific studies, historical events, named facts, technical specs). Extract up to 3 or 4 of the most important claims.
    CRITICAL EXTRACTION RULES:
+   - Language Preservation: Output the transcript, summary, and claims in the EXACT SAME LANGUAGE as spoken in the video (if the audio is in French, output all claims in French; do NOT translate French academic/institutional terms like "licence", "baccalauréat", "Cour des comptes" into English).
    - Extract ONLY claims that the speaker is presenting as factual TRUTH. Do NOT extract myths, jokes, sarcasm, or statements the speaker is actively debunking or mocking.
-   - Every extracted claim MUST be completely self-contained: replace vague pronouns or relative references (e.g. "he", "this study", "this year", "this drug") with explicit named entities, dates, and locations so the claim can be searched and verified independently.
+   - Every extracted claim MUST be completely self-contained: replace vague pronouns or relative references (e.g. "il", "cette étude", "cette année") with explicit named entities, dates, and locations so the claim can be searched and verified independently.
    - Do NOT include purely subjective opinions, personal taste, emotional statements, or vague life advice.
 4. Determine whether the video is technical/AI/software-related (true or false).
 

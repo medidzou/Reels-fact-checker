@@ -253,3 +253,24 @@ def test_groq_transcribe_unsupported_audio_format(tmp_path):
     assert "Unsupported audio format" in result.error
     mock_groq.audio.transcriptions.create.assert_not_called()
 
+
+def test_groq_chat_completion_candidate_fallback():
+    """Verify that if the primary model fails with model_not_found, it falls back to the next model."""
+    from pipeline.fallback import _call_groq_chat_completion
+
+    mock_client = MagicMock()
+    # First call fails with model_not_found, second call succeeds
+    mock_client.chat.completions.create.side_effect = [
+        Exception("The model `invalid-model` does not exist (model_not_found)"),
+        MagicMock(choices=[MagicMock(message=MagicMock(content="Success with candidate"))]),
+    ]
+
+    res = _call_groq_chat_completion(
+        mock_client,
+        [{"role": "user", "content": "hi"}],
+        preferred_model="invalid-model",
+    )
+    assert res is not None
+    assert mock_client.chat.completions.create.call_count == 2
+
+

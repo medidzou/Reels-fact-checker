@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
 
 SYNTHESIS_PROMPT = """Tu es un expert vérificateur de faits (Fact-Checker) forensique et rigoureux.
 Date de référence : {current_date}
