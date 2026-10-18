@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ReelCheck — The Forensic Reel Verification Engine</title>
+  <title>ReelCheck — Fact-checking instantané d'Instagram Reels</title>
   
   <!-- PWA Meta Tags -->
   <link rel="manifest" href="/static/manifest.json">
@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="ReelCheck">
   
-  <!-- Typographie Studio : Geist & Geist Mono (Vercel / Basement Studio) -->
+  <!-- Typographie Geist & Geist Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -29,21 +29,13 @@
             mono: ['"Geist Mono"', 'ui-monospace', 'monospace'],
           },
           colors: {
-            // Palette Papier Architectural (Upper Section)
             paper: '#F4F3EE',
             paperSurface: '#FFFFFF',
             paperBorder: '#E3DFD5',
             paperBorderDark: '#C9C5BA',
             paperInk: '#0A0A0A',
             paperMuted: '#6B685F',
-            // Palette Obsidian / Terminal (Dark Inset Section)
             obsidian: '#08090C',
-            surface: '#0F1116',
-            subsurface: '#151821',
-            hairline: '#202430',
-            hairlineLight: '#2C3242',
-            ink: '#F4F3EE',
-            inkMuted: '#848C9E',
           }
         }
       }
@@ -51,14 +43,9 @@
   </script>
 
   <style>
-    /* Rigueur Brutaliste & Anti-AI-Slop */
     ::selection {
       background-color: #0A0A0A;
       color: #F4F3EE;
-    }
-    .dark ::selection {
-      background-color: #F4F3EE;
-      color: #08090C;
     }
     .tabular-nums {
       font-variant-numeric: tabular-nums;
@@ -70,12 +57,6 @@
     .status-dot-pulse {
       animation: subtle-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
-    /* Dithered / Halftone Border Effect */
-    .dither-border-top {
-      background-image: radial-gradient(#202430 1px, transparent 1px);
-      background-size: 4px 4px;
-    }
-    /* Concentric ASCII Typography Circle */
     .ascii-orbit {
       font-family: '"Geist Mono"', monospace;
       letter-spacing: 0.18em;
@@ -86,19 +67,13 @@
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
-    .dotted-leader {
-      border-bottom: 1px dotted #A8A49A;
-      flex-grow: 1;
-      height: 0.8em;
-      margin: 0 0.5rem;
-    }
   </style>
 </head>
 <body class="bg-paper text-paperInk font-sans antialiased selection:bg-paperInk selection:text-paper min-h-screen flex flex-col justify-between">
 
-  <!-- FLOATING PILL NAVIGATION (Comme sur la référence The Content Architecture) -->
+  <!-- NAVIGATION FLOTTANTE MINIMALISTE -->
   <header class="fixed top-3 sm:top-4 left-1/2 -translate-x-1/2 z-50 w-auto max-w-[95vw]">
-    <nav class="bg-obsidian/95 backdrop-blur-md text-ink px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-white/10 flex items-center gap-2.5 sm:gap-4 text-[11px] sm:text-xs font-mono shadow-2xl whitespace-nowrap">
+    <nav class="bg-obsidian/95 backdrop-blur-md text-white px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-white/10 flex items-center gap-2.5 sm:gap-4 text-[11px] sm:text-xs font-mono shadow-xl whitespace-nowrap">
       <a href="/" class="flex items-center gap-2 font-bold tracking-tight text-white hover:text-white/80 transition-colors">
         <span class="w-4 h-4 bg-white text-black flex items-center justify-center text-[10px] font-black rounded-sm">R</span>
         <span>REELCHECK</span>
@@ -106,526 +81,349 @@
       
       <span class="text-white/30 hidden sm:inline">/</span>
       
-      <a href="#terminal-section" class="text-inkMuted hover:text-white transition-colors hidden sm:inline">
-        TERMINAL
-      </a>
-      
-      <span class="text-white/30 hidden sm:inline">/</span>
-      
-      <a href="#protocole-section" class="text-inkMuted hover:text-white transition-colors hidden sm:inline">
-        PROTOCOLE
-      </a>
+      <span class="text-neutral-400 hidden sm:inline">FACT-CHECKING REELS</span>
       
       <span class="text-white/30">•</span>
       
       <a href="https://t.me/ReelsFactCheckBot" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 transition-colors">
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 status-dot-pulse"></span>
-        <span class="text-[11px] font-bold">OSINT LIVE</span>
+        <span class="text-[11px] font-bold">BOT TELEGRAM</span>
       </a>
     </nav>
   </header>
 
-  <!-- ===================================================================== -->
-  <!-- SECTION SUPÉRIEURE : PAPIER ARCHITECTURAL BLANC-CASSE (#F4F3EE)       -->
-  <!-- ===================================================================== -->
-  <div class="w-full pt-28 pb-16 px-4 sm:px-6 border-b border-paperBorder">
-    <div class="max-w-6xl mx-auto space-y-16">
-
-      <!-- MASTHEAD & HERO (Format Asymétrique Studio) -->
-      <div id="hero-section" class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-        
-        <!-- Colonne Gauche : Thèse & Titrage Musclé -->
-        <div class="lg:col-span-8 space-y-6">
-          <div class="inline-flex items-center gap-2 px-2.5 py-1 bg-paperSurface border border-paperBorder text-[10px] font-mono tracking-widest uppercase text-paperMuted">
-            <span>FULL-STACK PROTOCOL</span>
-            <span>•</span>
-            <span>INSTAGRAM REEL AUDIT</span>
-            <span>•</span>
-            <span class="tabular-nums">2026</span>
-          </div>
-
-          <h1 class="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-paperInk leading-[1.03]">
-            L'investigation de Reels que les agents ne réinventent pas.
-          </h1>
-
-          <p class="text-sm sm:text-base text-paperMuted max-w-2xl leading-relaxed font-normal">
-            Dépouillement des flux médias Instagram, isolation des allégations verbales, et recoupement contradictoire en sources ouvertes en direct. Détection immédiate des artefacts tech et arbitrage sans concession.
-          </p>
-
-          <div class="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 font-mono text-xs">
-            <a 
-              href="#terminal-section" 
-              class="px-5 py-3.5 bg-paperInk text-paper hover:bg-neutral-800 transition-colors font-medium flex items-center justify-center gap-2 text-center"
-            >
-              <span>OUVRIR LE TERMINAL D'ENQUÊTE</span>
-              <span>↓</span>
-            </a>
-            <a 
-              href="https://t.me/ReelsFactCheckBot" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              class="px-4 py-3.5 bg-paperSurface hover:bg-paper border border-paperBorder text-paperInk transition-colors flex items-center justify-center gap-2 text-center"
-            >
-              <span>BOT TELEGRAM DIRECT</span>
-              <span>↗</span>
-            </a>
-          </div>
-        </div>
-
-        <!-- Colonne Droite : Art Typographique Concentrique (Comme la sphère d'architecture de la référence) -->
-        <div class="lg:col-span-4 hidden lg:flex items-center justify-center">
-          <div class="relative w-72 h-72 flex items-center justify-center select-none pointer-events-none">
-            <svg class="w-full h-full ascii-orbit" viewBox="0 0 300 300">
-              <defs>
-                <path id="circlePath1" d="M 150, 150 m -120, 0 a 120,120 0 1,1 240,0 a 120,120 0 1,1 -240,0" fill="none"/>
-                <path id="circlePath2" d="M 150, 150 m -85, 0 a 85,85 0 1,1 170,0 a 85,85 0 1,1 -170,0" fill="none"/>
-                <path id="circlePath3" d="M 150, 150 m -50, 0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0" fill="none"/>
-              </defs>
-              <text font-size="8.5" fill="#A4A095" font-weight="600">
-                <textPath href="#circlePath1">REELCHECK FORENSIC AUDIT PROTOCOL • OPEN SOURCE OSINT PIPELINE • 2026 •</textPath>
-              </text>
-              <text font-size="8" fill="#88847A" font-weight="500">
-                <textPath href="#circlePath2">DUCKDUCKGO • WIKIPEDIA FR/EN • GEMINI FLASH • GROQ WHISPER •</textPath>
-              </text>
-              <text font-size="7.5" fill="#55524B" font-weight="600">
-                <textPath href="#circlePath3">VERIFIED EVIDENCE • TRUTH INDEX • ZERO SLOP •</textPath>
-              </text>
-            </svg>
-            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span class="font-mono text-[10px] tracking-widest uppercase text-paperMuted font-bold">NODE #01</span>
-              <span class="font-mono text-xl font-black text-paperInk">RC</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- MÉTRIQUE GÉANTE & TÉLÉMÉTRIE (Comme le bloc "~24" dans la référence) -->
-      <div id="protocole-section" class="pt-12 border-t border-paperBorder grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        <!-- Bloc Chiffre Géant -->
-        <div class="lg:col-span-5 space-y-2">
-          <div class="text-[11px] font-mono uppercase tracking-widest text-paperMuted font-semibold">
-            TÉLÉMÉTRIE DE RECOUPEMENT MULTITHREADÉ
-          </div>
-          <div class="text-7xl sm:text-9xl font-black tracking-tighter text-paperInk tabular-nums leading-none">
-            ~14s
-          </div>
-          <p class="text-xs text-paperMuted font-mono">
-            TEMPS MOYEN PAR INVESTIGATION EN SOURCES OUVERTES
-          </p>
-        </div>
-
-        <!-- Tableau Détaillé en Lignes Dotted (Comme le tableau de droite dans la référence) -->
-        <div class="lg:col-span-7 bg-paperSurface border border-paperBorder p-5 sm:p-6 space-y-3 font-mono text-xs">
-          <div class="flex items-center justify-between text-[10px] uppercase tracking-wider text-paperMuted border-b border-paperBorder pb-2">
-            <span>SÉQUENÇAGE DU PIPELINE</span>
-            <span>LATENCE CIBLE</span>
-          </div>
-
-          <div class="flex items-center justify-between py-1 text-paperInk">
-            <span class="font-semibold">01 / INGESTION AUDIO BRUT (YT-DLP)</span>
-            <span class="dotted-leader"></span>
-            <span class="tabular-nums font-bold">~2S</span>
-          </div>
-
-          <div class="flex items-center justify-between py-1 text-paperInk">
-            <span class="font-semibold">02 / DÉPOUILLEMENT VOCAL (WHISPER / GEMINI)</span>
-            <span class="dotted-leader"></span>
-            <span class="tabular-nums font-bold">~4S</span>
-          </div>
-
-          <div class="flex items-center justify-between py-1 text-paperInk">
-            <span class="font-semibold">03 / CONFRONTATION OSINT DIRECTE (DDG + WIKI)</span>
-            <span class="dotted-leader"></span>
-            <span class="tabular-nums font-bold">~5S</span>
-          </div>
-
-          <div class="flex items-center justify-between py-1 text-paperInk">
-            <span class="font-semibold">04 / SYNTHÈSE FORENSIQUE & VERDICT FINAL</span>
-            <span class="dotted-leader"></span>
-            <span class="tabular-nums font-bold">~3S</span>
-          </div>
-
-          <div class="flex items-center justify-between pt-2 border-t border-paperBorder text-sky-800 font-bold">
-            <span>MODULE TECH : COURT-CIRCUIT D'AUDIT OUTIL/MCP</span>
-            <span class="dotted-leader"></span>
-            <span class="tabular-nums">~5S</span>
-          </div>
-        </div>
-
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- SECTION INFÉRIEURE : TERMINAL DE TRAVAIL OBSIDIAN (#08090C)           -->
-  <!-- ===================================================================== -->
-  <div id="terminal-section" class="w-full bg-obsidian text-ink py-16 px-4 sm:px-6 flex-1">
-    <main class="max-w-5xl mx-auto space-y-10">
+  <!-- CONTENU PRINCIPAL UNIQUE & COHÉRENT -->
+  <main class="w-full pt-24 sm:pt-28 pb-16 px-4 sm:px-6 flex-1 flex flex-col items-center">
+    <div class="w-full max-w-3xl mx-auto space-y-8">
 
       <!-- BANNIÈRE D'ALERTE DYNAMIQUE -->
       <div id="alert-banner" class="hidden p-4 border text-xs font-mono leading-relaxed transition-all"></div>
 
-      <!-- WORKSPACE INTAKE TERMINAL (Comme le Code Editor dans la référence) -->
-      <div id="input-section" class="space-y-6">
-        
-        <div class="space-y-2">
-          <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-inkMuted">ESPACE D'AUDIT // CONSOLE OPÉRATIONNELLE</div>
-          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-ink">
-            Chaque allégation vérifiée à la source.
-          </h2>
-          <p class="text-xs sm:text-sm text-inkMuted max-w-xl">
-            Insérez l'URL d'un Reel Instagram public ou déposez votre capture vidéo brute jusqu'à 25 Mo.
-          </p>
+      <!-- HERO SECTION ÉPURÉE SANS PHRASES INUTILES -->
+      <div id="hero-section" class="space-y-4 text-center sm:text-left">
+        <div class="inline-flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2.5 py-1 bg-white border border-paperBorder text-[10px] font-mono tracking-wider sm:tracking-widest uppercase text-paperMuted">
+          <span>FACT-CHECKING INDÉPENDANT</span>
+          <span>•</span>
+          <span>INSTAGRAM REELS</span>
+          <span class="hidden sm:inline">•</span>
+          <span class="hidden sm:inline tabular-nums">2026</span>
         </div>
 
-        <!-- BOÎTE DE TYPE ÉDITEUR DE CODE / CADRE TERMINAL -->
-        <div class="border border-hairline bg-surface rounded-none overflow-hidden shadow-2xl">
-          
-          <!-- Barre Supérieure de Fenêtre -->
-          <div class="px-4 py-2.5 bg-subsurface border-b border-hairline flex items-center justify-between text-xs font-mono">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80"></span>
-              <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
-              <span class="ml-2 text-inkMuted text-[11px]">REELCHECK_TERMINAL // AGENT_WORKSPACE</span>
+        <h1 class="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-paperInk leading-[1.08]">
+          Vérifiez n'importe quel Reel en quelques secondes.
+        </h1>
+
+        <p class="text-sm sm:text-base text-paperMuted max-w-2xl leading-relaxed">
+          Collez le lien d'un Reel Instagram public ou déposez votre vidéo. ReelCheck extrait les affirmations clés et les confronte aux sources fiables en temps réel.
+        </p>
+      </div>
+
+      <!-- CARTE DE SAISIE ÉDITORIALE (STYLE HARMONISÉ BLANC PAPIER & BORDURES FINES) -->
+      <div id="input-section" class="bg-white border border-paperBorder p-5 sm:p-7 shadow-sm space-y-6">
+        
+        <!-- Onglets Source (Lien vs Fichier) -->
+        <div class="flex items-center border-b border-paperBorder pb-3 gap-2 font-mono text-xs">
+          <button 
+            id="tab-url-btn" 
+            type="button"
+            class="px-3 py-1.5 sm:px-3.5 sm:py-1.5 font-semibold bg-neutral-950 text-white rounded-none transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer text-[11px] sm:text-xs"
+          >
+            <span>[01]</span>
+            <span>LIEN REEL</span>
+          </button>
+
+          <button 
+            id="tab-upload-btn" 
+            type="button"
+            class="px-3 py-1.5 sm:px-3.5 sm:py-1.5 font-medium text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100 rounded-none transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer text-[11px] sm:text-xs"
+          >
+            <span>[02]</span>
+            <span>FICHIER VIDÉO</span>
+          </button>
+        </div>
+
+        <!-- ONGLET 1 : SOUMISSION URL -->
+        <div id="pane-url" class="space-y-4">
+          <form id="url-form" class="space-y-3">
+            <div class="relative">
+              <input 
+                id="url-input" 
+                type="url" 
+                placeholder="https://www.instagram.com/reel/..." 
+                required
+                class="w-full pl-4 pr-24 py-3.5 bg-paper/50 border border-neutral-300 text-sm font-mono text-neutral-950 placeholder-neutral-400 focus:outline-none focus:border-neutral-950 focus:bg-white transition-all"
+              >
+              <button 
+                id="paste-btn" 
+                type="button" 
+                class="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 text-[11px] font-mono uppercase font-medium text-neutral-600 hover:text-neutral-950 bg-white hover:bg-neutral-100 border border-neutral-300 transition-colors cursor-pointer"
+              >
+                Coller
+              </button>
             </div>
-            <div class="text-[10px] text-inkMuted uppercase">ENV : PYTHON 3.11 / RENDER FREE</div>
+
+            <button 
+              type="submit" 
+              class="w-full py-3.5 px-4 text-xs font-mono uppercase font-bold text-white bg-neutral-950 hover:bg-neutral-800 active:bg-black transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+            >
+              <span>Vérifier ce Reel</span>
+              <span>→</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- ONGLET 2 : UPLOAD DIRECT -->
+        <div id="pane-upload" class="hidden space-y-4">
+          <form id="upload-form" class="space-y-3">
+            <div 
+              id="dropzone" 
+              class="border-2 border-dashed border-neutral-300 hover:border-neutral-900 p-8 sm:p-10 text-center cursor-pointer transition-colors bg-paper/40 hover:bg-paper/70"
+            >
+              <input 
+                id="file-input" 
+                type="file" 
+                accept="video/mp4,video/quicktime,video/x-msvideo,video/webm,audio/mpeg,audio/mp4,audio/wav" 
+                class="hidden"
+              >
+              <div class="flex flex-col items-center justify-center gap-2">
+                <svg class="w-6 h-6 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p class="text-xs text-neutral-800 font-sans">
+                  Glissez votre capture vidéo ou <span class="underline font-semibold text-neutral-950">sélectionnez un fichier</span>
+                </p>
+                <p class="text-[10px] font-mono text-neutral-500 uppercase">MP4, MOV, WEBM • Maximum 25 Mo</p>
+              </div>
+            </div>
+
+            <!-- Preview Fichier Sélectionné -->
+            <div id="file-selected-card" class="hidden p-3.5 bg-paper border border-neutral-300 flex items-center justify-between text-xs font-mono">
+              <div class="flex items-center gap-2 truncate">
+                <span class="text-neutral-500">[FICHIER]</span>
+                <span id="file-name-label" class="text-neutral-950 font-semibold truncate">video.mp4</span>
+                <span id="file-size-label" class="text-neutral-500 text-[10px]">(0 MB)</span>
+              </div>
+              <button id="file-clear-btn" type="button" class="text-neutral-500 hover:text-rose-600 px-2 py-0.5 font-mono cursor-pointer">✕</button>
+            </div>
+
+            <button 
+              id="upload-submit-btn" 
+              type="submit" 
+              disabled 
+              class="w-full py-3.5 px-4 text-xs font-mono uppercase font-bold text-white bg-neutral-950 hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+            >
+              <span>Vérifier le fichier envoyé</span>
+              <span>→</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- EXEMPLES 1-CLIC COMPACTS ET UTILES -->
+        <div class="pt-4 border-t border-paperBorder space-y-2.5">
+          <div class="flex items-center justify-between text-[11px] font-mono text-paperMuted">
+            <span class="uppercase tracking-wider font-semibold">Exemples prêts à tester :</span>
+            <span class="text-[10px]">1 clic ↗</span>
           </div>
 
-          <!-- Onglets de Sélection de Source -->
-          <div class="flex items-center border-b border-hairline bg-subsurface/60 font-mono text-xs px-2 pt-2 gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 font-mono text-xs">
             <button 
-              id="tab-url-btn" 
-              type="button"
-              class="px-3.5 py-2 font-medium border-t-2 border-ink text-ink bg-surface transition-all flex items-center gap-2 cursor-pointer"
+              type="button" 
+              class="sample-case-btn p-3 bg-paper/60 hover:bg-white border border-neutral-200 hover:border-neutral-950 transition-all text-left cursor-pointer flex flex-col justify-between"
+              data-url="https://www.instagram.com/reel/C7xTechAuditClaudeMCP/"
             >
-              <span class="text-[10px] text-inkMuted">[01]</span>
-              <span>LIEN INSTAGRAM REEL</span>
+              <div class="text-[10px] font-bold text-sky-700 uppercase mb-1">[01 // Tech]</div>
+              <div class="text-[11px] text-neutral-900 font-medium leading-snug">Serveur MCP & Claude Desktop</div>
             </button>
 
             <button 
-              id="tab-upload-btn" 
-              type="button"
-              class="px-3.5 py-2 font-medium border-t-2 border-transparent text-inkMuted hover:text-ink transition-all flex items-center gap-2 cursor-pointer"
+              type="button" 
+              class="sample-case-btn p-3 bg-paper/60 hover:bg-white border border-neutral-200 hover:border-neutral-950 transition-all text-left cursor-pointer flex flex-col justify-between"
+              data-url="https://www.instagram.com/reel/C8yHealthClaimCancerRemedy/"
             >
-              <span class="text-[10px] text-inkMuted">[02]</span>
-              <span>FICHIER VIDÉO BRUT (25 MO)</span>
+              <div class="text-[10px] font-bold text-rose-700 uppercase mb-1">[02 // Santé]</div>
+              <div class="text-[11px] text-neutral-900 font-medium leading-snug">Remède miracle & vitamines</div>
+            </button>
+
+            <button 
+              type="button" 
+              class="sample-case-btn p-3 bg-paper/60 hover:bg-white border border-neutral-200 hover:border-neutral-950 transition-all text-left cursor-pointer flex flex-col justify-between"
+              data-url="https://www.instagram.com/reel/C9zDeepfakeElectionSpeech/"
+            >
+              <div class="text-[10px] font-bold text-amber-700 uppercase mb-1">[03 // Actualité]</div>
+              <div class="text-[11px] text-neutral-900 font-medium leading-snug">Discours cloné & fausse citation</div>
             </button>
           </div>
-
-          <!-- Contenu des Panneaux -->
-          <div class="p-5 sm:p-6">
-            
-            <!-- ONGLET 1 : SOUMISSION URL -->
-            <div id="pane-url" class="space-y-4">
-              <form id="url-form" class="space-y-4">
-                <div class="relative">
-                  <input 
-                    id="url-input" 
-                    type="url" 
-                    placeholder="https://www.instagram.com/reel/..." 
-                    required
-                    class="w-full pl-4 pr-24 py-3.5 bg-obsidian border border-hairline text-xs font-mono text-ink placeholder-inkMuted/50 focus:outline-none focus:border-ink transition-colors"
-                  >
-                  <button 
-                    id="paste-btn" 
-                    type="button" 
-                    class="absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 text-[10px] font-mono uppercase text-inkMuted hover:text-ink bg-subsurface hover:bg-hairline transition-colors border border-hairline cursor-pointer"
-                  >
-                    Coller
-                  </button>
-                </div>
-
-                <button 
-                  type="submit" 
-                  class="w-full py-3.5 px-4 text-xs font-mono uppercase font-bold text-obsidian bg-ink hover:bg-white active:bg-neutral-200 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>DÉMARRER L'INVESTIGATION FORENSIQUE</span>
-                  <span>→</span>
-                </button>
-              </form>
-            </div>
-
-            <!-- ONGLET 2 : UPLOAD DIRECT -->
-            <div id="pane-upload" class="hidden space-y-4">
-              <form id="upload-form" class="space-y-4">
-                <div 
-                  id="dropzone" 
-                  class="border border-dashed border-hairline hover:border-inkMuted p-8 sm:p-10 text-center cursor-pointer transition-colors bg-obsidian/60"
-                >
-                  <input 
-                    id="file-input" 
-                    type="file" 
-                    accept="video/mp4,video/quicktime,video/x-msvideo,video/webm,audio/mpeg,audio/mp4,audio/wav" 
-                    class="hidden"
-                  >
-                  <div class="flex flex-col items-center justify-center gap-2">
-                    <svg class="w-6 h-6 text-inkMuted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="17 8 12 3 7 8"/>
-                      <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    <p class="text-xs text-ink font-sans">
-                      Glissez la capture vidéo ou <span class="underline text-ink">sélectionnez un fichier</span>
-                    </p>
-                    <p class="text-[10px] font-mono text-inkMuted uppercase">MP4, MOV, WEBM • Plafond 25 Mo</p>
-                  </div>
-                </div>
-
-                <!-- Preview Fichier Sélectionné -->
-                <div id="file-selected-card" class="hidden p-3.5 bg-obsidian border border-hairline flex items-center justify-between text-xs font-mono">
-                  <div class="flex items-center gap-2 truncate">
-                    <span class="text-inkMuted">[FICHIER]</span>
-                    <span id="file-name-label" class="text-ink truncate">video.mp4</span>
-                    <span id="file-size-label" class="text-inkMuted text-[10px]">(0 MB)</span>
-                  </div>
-                  <button id="file-clear-btn" type="button" class="text-inkMuted hover:text-rose-400 px-2 py-0.5 font-mono">✕</button>
-                </div>
-
-                <button 
-                  id="upload-submit-btn" 
-                  type="submit" 
-                  disabled 
-                  class="w-full py-3.5 px-4 text-xs font-mono uppercase font-bold text-obsidian bg-ink hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>AUDITER LE FICHIER ENVOYÉ</span>
-                  <span>→</span>
-                </button>
-              </form>
-            </div>
-
-          </div>
-
-          <!-- DOSSIERS D'EXEMPLES PRÉ-CALIBRÉS (Comme la grille de cartes dans la référence) -->
-          <div class="p-4 sm:p-5 bg-subsurface/60 border-t border-hairline space-y-2.5">
-            <div class="flex items-center justify-between text-[10px] font-mono text-inkMuted uppercase tracking-wider">
-              <span>DOSSIERS TYPES PRÉ-CALIBRÉS // TEST 1-CLIC DIRECT</span>
-              <span>CHARGE DANS LA CONSOLE ↗</span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 font-mono text-xs">
-              <button 
-                type="button" 
-                class="sample-case-btn p-3 bg-surface hover:bg-hairline border border-hairline hover:border-sky-400/60 transition-colors text-left group cursor-pointer flex flex-col justify-between min-h-[72px]"
-                data-url="https://www.instagram.com/reel/C7xTechAuditClaudeMCP/"
-              >
-                <div class="flex items-center justify-between text-[10px] mb-1">
-                  <span class="text-sky-400 font-bold">[01 // TECH]</span>
-                  <span class="text-inkMuted group-hover:text-ink">~5S</span>
-                </div>
-                <div class="text-[11px] text-ink font-medium leading-snug group-hover:text-white">
-                  Serveur MCP Claude Desktop & Dépôt GitHub
-                </div>
-              </button>
-
-              <button 
-                type="button" 
-                class="sample-case-btn p-3 bg-surface hover:bg-hairline border border-hairline hover:border-rose-400/60 transition-colors text-left group cursor-pointer flex flex-col justify-between min-h-[72px]"
-                data-url="https://www.instagram.com/reel/C8yHealthClaimCancerRemedy/"
-              >
-                <div class="flex items-center justify-between text-[10px] mb-1">
-                  <span class="text-rose-400 font-bold">[02 // SANTÉ]</span>
-                  <span class="text-inkMuted group-hover:text-ink">~14S</span>
-                </div>
-                <div class="text-[11px] text-ink font-medium leading-snug group-hover:text-white">
-                  Allégation remède miracle & injection vitaminée
-                </div>
-              </button>
-
-              <button 
-                type="button" 
-                class="sample-case-btn p-3 bg-surface hover:bg-hairline border border-hairline hover:border-amber-400/60 transition-colors text-left group cursor-pointer flex flex-col justify-between min-h-[72px]"
-                data-url="https://www.instagram.com/reel/C9zDeepfakeElectionSpeech/"
-              >
-                <div class="flex items-center justify-between text-[10px] mb-1">
-                  <span class="text-amber-400 font-bold">[03 // INFO]</span>
-                  <span class="text-inkMuted group-hover:text-ink">~14S</span>
-                </div>
-                <div class="text-[11px] text-ink font-medium leading-snug group-hover:text-white">
-                  Discours électoral cloné & fausse déclaration
-                </div>
-              </button>
-            </div>
-          </div>
-
         </div>
 
       </div>
 
-      <!-- ÉTAT DE PROGRESSION // LIVE LOG PIPELINE -->
-      <div id="progress-section" class="hidden p-6 bg-surface border border-hairline space-y-5">
-        <div class="flex items-center justify-between border-b border-hairline pb-3">
+      <!-- ÉTAT DE PROGRESSION // STYLE ÉDITORIAL PAPIER -->
+      <div id="progress-section" class="hidden p-6 sm:p-7 bg-white border border-paperBorder space-y-5 shadow-sm">
+        <div class="flex items-center justify-between border-b border-paperBorder pb-3">
           <div class="flex items-center gap-2.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 status-dot-pulse"></span>
-            <span class="font-mono text-xs uppercase tracking-wider text-ink font-bold">Investigation Active en Cours</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-600 status-dot-pulse"></span>
+            <span class="font-mono text-xs uppercase tracking-wider text-neutral-950 font-bold">Vérification en cours</span>
           </div>
-          <span class="text-[10px] font-mono text-inkMuted">[ISOLATION DES FLUX]</span>
+          <span class="text-[10px] font-mono text-neutral-500">ANALYSE EN DIRECT</span>
         </div>
 
-        <p id="progress-stage-text" class="text-xs font-mono text-ink leading-relaxed">
-          Initialisation de la requête forensique...
+        <p id="progress-stage-text" class="text-xs font-mono text-neutral-800 leading-relaxed font-medium">
+          Initialisation de la vérification...
         </p>
 
-        <!-- Étapes de Séquençage -->
+        <!-- Étapes de progression -->
         <div class="space-y-2.5 font-mono text-xs pt-1">
-          <div id="step-download" class="flex items-center gap-3 text-inkMuted">
-            <span class="step-indicator w-4 h-4 border border-hairline flex items-center justify-center text-[10px]">1</span>
-            <span class="step-label">Acquisition et extraction du flux audio brut</span>
+          <div id="step-download" class="flex items-center gap-3 text-neutral-400">
+            <span class="step-indicator w-4 h-4 border border-neutral-300 flex items-center justify-center text-[10px]">1</span>
+            <span class="step-label">Extraction de l'audio du Reel</span>
           </div>
-          <div id="step-transcribe" class="flex items-center gap-3 text-inkMuted">
-            <span class="step-indicator w-4 h-4 border border-hairline flex items-center justify-center text-[10px]">2</span>
-            <span class="step-label">Transcription Whisper & extraction d'affirmations</span>
+          <div id="step-transcribe" class="flex items-center gap-3 text-neutral-400">
+            <span class="step-indicator w-4 h-4 border border-neutral-300 flex items-center justify-center text-[10px]">2</span>
+            <span class="step-label">Transcription audio & isolation des affirmations</span>
           </div>
-          <div id="step-factcheck" class="flex items-center gap-3 text-inkMuted">
-            <span class="step-indicator w-4 h-4 border border-hairline flex items-center justify-center text-[10px]">3</span>
+          <div id="step-factcheck" class="flex items-center gap-3 text-neutral-400">
+            <span class="step-indicator w-4 h-4 border border-neutral-300 flex items-center justify-center text-[10px]">3</span>
             <span class="step-label">Recoupement croisé DuckDuckGo & Wikipédia</span>
           </div>
-          <div id="step-verdict" class="flex items-center gap-3 text-inkMuted">
-            <span class="step-indicator w-4 h-4 border border-hairline flex items-center justify-center text-[10px]">4</span>
-            <span class="step-label">Calcul de l'indice de véracité & synthèse critique</span>
+          <div id="step-verdict" class="flex items-center gap-3 text-neutral-400">
+            <span class="step-indicator w-4 h-4 border border-neutral-300 flex items-center justify-center text-[10px]">4</span>
+            <span class="step-label">Calcul de l'indice de véracité & synthèse finale</span>
           </div>
         </div>
       </div>
 
-      <!-- SECTION AUDIT REEL TECH (PANNEAU FORENSIQUE ÉDITORIAL) -->
+      <!-- SECTION AUDIT REEL TECH // PANNEAU ÉDITORIAL PAPIER -->
       <div id="tech-audit-section" class="hidden space-y-6">
         
-        <!-- HEADER DOSSIER TECHNIQUE -->
-        <div class="p-6 bg-surface border border-hairline space-y-4">
-          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-hairline pb-4">
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-mono font-bold tracking-widest text-sky-400">[REEL TECH // ARTEFACT TECHNIQUE DÉTECTÉ]</span>
-            </div>
-            <span class="text-[10px] font-mono text-inkMuted">COURT-CIRCUIT EXPRESS : ~5S</span>
+        <div class="p-6 sm:p-7 bg-white border border-paperBorder space-y-5 shadow-sm">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-paperBorder pb-4">
+            <span class="text-xs font-mono font-bold tracking-widest text-sky-800">[REEL TECH // DÉTECTION D'OUTIL OU DÉPÔT]</span>
+            <span class="text-[10px] font-mono text-neutral-500 uppercase">Court-circuit express</span>
           </div>
 
           <div>
-            <div class="text-[10px] font-mono uppercase tracking-widest text-inkMuted mb-1">OBJET IDENTIFIÉ</div>
-            <h2 id="tech-title" class="text-xl sm:text-2xl font-bold text-ink mb-2">Outil, Dépôt ou Prompt Détecté</h2>
-            <p id="tech-summary-text" class="text-xs sm:text-sm text-ink/90 leading-relaxed font-sans"></p>
+            <div class="text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-1">OBJET IDENTIFIÉ</div>
+            <h2 id="tech-title" class="text-xl sm:text-2xl font-bold text-neutral-950 mb-2">Outil, Dépôt ou Prompt Détecté</h2>
+            <p id="tech-summary-text" class="text-xs sm:text-sm text-neutral-700 leading-relaxed font-sans"></p>
           </div>
 
-          <!-- TÉLÉMÉTRIE & MATRICE MACHINE -->
-          <div class="p-4 bg-subsurface border border-hairline border-l-2 border-l-sky-500 font-mono text-xs space-y-1.5">
-            <div class="text-[10px] uppercase font-bold tracking-wider text-sky-400">Matrice Machine & Cyberdéfense Active</div>
-            <div class="text-ink text-[11px]">
-              HÔTE : Windows 11 • CPU : Intel Core i5-1035G1 • RAM : 24 Go • GPU : Aucun (CPU Only)
-            </div>
-            <div class="text-inkMuted text-[10px]">
-              AUDIT SÉCURITÉ : Détection de malwares, vol de clés API et injections de prompts invisibles.
+          <!-- Note Machine & Sécurité -->
+          <div class="p-3.5 bg-paper border border-paperBorder text-xs font-mono space-y-1">
+            <div class="text-neutral-800 font-semibold text-[11px]">Audit de faisabilité & sécurité</div>
+            <div class="text-neutral-600 text-[11px]">
+              Vérification des dépendances, commandes d'installation et détection des risques potentiels.
             </div>
           </div>
         </div>
 
-        <!-- BOUTONS D'ACTION 1-CLIC (Cartes d'atelier sans emoji) -->
-        <div class="p-5 bg-surface border border-hairline space-y-3">
-          <div class="text-[10px] font-mono uppercase tracking-widest text-inkMuted">
-            Transférer l'audit complet vers l'intelligence artificielle de votre choix :
+        <!-- BOUTONS D'ACTION 1-CLIC VERS LES IA -->
+        <div class="p-5 sm:p-6 bg-white border border-paperBorder space-y-3 shadow-sm">
+          <div class="text-[11px] font-mono uppercase tracking-wider text-neutral-600 font-semibold">
+            Tester ou installer avec l'IA de votre choix :
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 font-mono text-xs">
             <!-- ChatGPT -->
-            <a id="btn-chatgpt" href="#" target="_blank" rel="noopener noreferrer" class="p-3.5 bg-subsurface hover:bg-hairline border border-hairline hover:border-emerald-500/60 transition-colors flex items-center justify-between text-ink group">
+            <a id="btn-chatgpt" href="#" target="_blank" rel="noopener noreferrer" class="p-3 bg-paper/60 hover:bg-white border border-neutral-300 hover:border-neutral-950 transition-colors flex items-center justify-between text-neutral-950 group">
               <div class="flex items-center gap-2.5">
-                <span class="w-1.5 h-1.5 bg-emerald-400"></span>
+                <span class="w-2 h-2 bg-emerald-600 rounded-full"></span>
                 <div>
-                  <div class="font-medium text-ink group-hover:text-emerald-300 transition-colors">Ouvrir dans ChatGPT</div>
-                  <div class="text-[10px] text-inkMuted">Prompt calibré pré-rempli ↗</div>
+                  <div class="font-semibold text-neutral-950">Ouvrir dans ChatGPT</div>
+                  <div class="text-[10px] text-neutral-500">Prompt pré-rempli ↗</div>
                 </div>
               </div>
-              <span class="text-[10px] text-inkMuted border border-hairline px-1.5 py-0.5">WEB</span>
+              <span class="text-[10px] text-neutral-500 border border-neutral-300 px-1.5 py-0.5">WEB</span>
             </a>
 
             <!-- Claude -->
-            <a id="btn-claude" href="#" target="_blank" rel="noopener noreferrer" class="p-3.5 bg-subsurface hover:bg-hairline border border-hairline hover:border-amber-500/60 transition-colors flex items-center justify-between text-ink group">
+            <a id="btn-claude" href="#" target="_blank" rel="noopener noreferrer" class="p-3 bg-paper/60 hover:bg-white border border-neutral-300 hover:border-neutral-950 transition-colors flex items-center justify-between text-neutral-950 group">
               <div class="flex items-center gap-2.5">
-                <span class="w-1.5 h-1.5 bg-amber-400"></span>
+                <span class="w-2 h-2 bg-amber-600 rounded-full"></span>
                 <div>
-                  <div class="font-medium text-ink group-hover:text-amber-300 transition-colors">Ouvrir dans Claude</div>
-                  <div class="text-[10px] text-inkMuted">Prompt calibré pré-rempli ↗</div>
+                  <div class="font-semibold text-neutral-950">Ouvrir dans Claude</div>
+                  <div class="text-[10px] text-neutral-500">Prompt pré-rempli ↗</div>
                 </div>
               </div>
-              <span class="text-[10px] text-inkMuted border border-hairline px-1.5 py-0.5">WEB</span>
+              <span class="text-[10px] text-neutral-500 border border-neutral-300 px-1.5 py-0.5">WEB</span>
             </a>
 
-            <!-- Gemini (App Mobile Native / Web) -->
-            <button id="btn-gemini" type="button" class="p-3.5 bg-subsurface hover:bg-hairline border border-hairline hover:border-sky-500/60 transition-colors flex items-center justify-between text-left cursor-pointer text-ink group">
+            <!-- Gemini -->
+            <button id="btn-gemini" type="button" class="p-3 bg-paper/60 hover:bg-white border border-neutral-300 hover:border-neutral-950 transition-colors flex items-center justify-between text-left cursor-pointer text-neutral-950 group">
               <div class="flex items-center gap-2.5">
-                <span class="w-1.5 h-1.5 bg-sky-400"></span>
+                <span class="w-2 h-2 bg-sky-600 rounded-full"></span>
                 <div>
-                  <div class="font-medium text-ink group-hover:text-sky-300 transition-colors">Ouvrir dans Gemini</div>
-                  <div class="text-[10px] text-inkMuted">Lancement direct appli dédiée ↗</div>
+                  <div class="font-semibold text-neutral-950">Ouvrir dans Gemini</div>
+                  <div class="text-[10px] text-neutral-500">Appli ou Web ↗</div>
                 </div>
               </div>
-              <span class="text-[10px] text-inkMuted border border-hairline px-1.5 py-0.5">APPLI</span>
+              <span class="text-[10px] text-neutral-500 border border-neutral-300 px-1.5 py-0.5">APPLI</span>
             </button>
 
-            <!-- Antigravity / Codex / Terminal -->
-            <button id="btn-copy-tech-prompt" type="button" class="p-3.5 bg-subsurface hover:bg-hairline border border-hairline hover:border-ink transition-colors flex items-center justify-between text-left cursor-pointer text-ink group">
+            <!-- Terminal / Antigravity -->
+            <button id="btn-copy-tech-prompt" type="button" class="p-3 bg-paper/60 hover:bg-white border border-neutral-300 hover:border-neutral-950 transition-colors flex items-center justify-between text-left cursor-pointer text-neutral-950 group">
               <div class="flex items-center gap-2.5">
-                <span class="w-1.5 h-1.5 bg-inkMuted"></span>
+                <span class="w-2 h-2 bg-neutral-900 rounded-full"></span>
                 <div>
-                  <div class="font-medium text-ink group-hover:text-white transition-colors">Copier pour Terminal & IDE</div>
-                  <div class="text-[10px] text-inkMuted">Formaté pour Antigravity / Codex</div>
+                  <div class="font-semibold text-neutral-950">Copier pour Terminal & IDE</div>
+                  <div class="text-[10px] text-neutral-500">Antigravity / Codex / CLI</div>
                 </div>
               </div>
-              <span class="text-[10px] text-inkMuted border border-hairline px-1.5 py-0.5">PRESSE-PAPIER</span>
+              <span class="text-[10px] text-neutral-500 border border-neutral-300 px-1.5 py-0.5">COPIER</span>
             </button>
           </div>
         </div>
 
-        <!-- TRANSCRIPTION REPLIABLE TYPE DÉPOSITION -->
-        <details class="p-4 bg-surface border border-hairline font-mono text-xs text-ink">
-          <summary class="cursor-pointer font-semibold uppercase text-inkMuted hover:text-ink transition-colors flex items-center justify-between">
-            <span>[+] AFFICHER LA TRANSCRIPTION BRUTE DU FLUX AUDIO</span>
-            <span class="text-[10px] text-inkMuted">VERBATIM DÉPOSÉ</span>
+        <!-- TRANSCRIPTION DÉROULANTE -->
+        <details class="p-4 bg-white border border-paperBorder font-mono text-xs text-neutral-900 shadow-sm">
+          <summary class="cursor-pointer font-semibold uppercase text-neutral-600 hover:text-neutral-950 transition-colors flex items-center justify-between">
+            <span>[+] Afficher la transcription audio du Reel</span>
+            <span class="text-[10px] text-neutral-500">VERBATIM</span>
           </summary>
-          <div id="tech-transcript-full" class="mt-3 pt-3 border-t border-hairline text-ink leading-relaxed font-sans text-xs whitespace-pre-wrap"></div>
+          <div id="tech-transcript-full" class="mt-3 pt-3 border-t border-paperBorder text-neutral-800 leading-relaxed font-sans text-xs whitespace-pre-wrap"></div>
         </details>
 
-        <!-- OPTION DE FACT-CHECKING COMPLET SECONDAIRE -->
-        <div class="p-3.5 bg-subsurface border border-hairline flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-mono text-xs">
-          <span class="text-inkMuted">Allégations non techniques nécessitant un recoupement web ?</span>
-          <button id="tech-force-full-btn" type="button" class="px-3 py-1 bg-surface hover:bg-hairline text-ink border border-hairline transition-colors cursor-pointer text-[11px] uppercase tracking-wider">
-            Lancer l'investigation web approfondie
+        <!-- RECHERCHE APPROFONDIE FORCÉE -->
+        <div class="p-4 bg-white border border-paperBorder flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-mono text-xs shadow-sm">
+          <span class="text-neutral-600">Besoin d'une vérification factuelle complète sur le web ?</span>
+          <button id="tech-force-full-btn" type="button" class="px-3 py-1.5 bg-paper hover:bg-neutral-100 text-neutral-950 border border-neutral-300 transition-colors cursor-pointer text-[11px] uppercase tracking-wider font-semibold">
+            Lancer l'investigation web
           </button>
         </div>
 
-        <!-- NAVIGATION & PARTAGE DU RAPPORT -->
+        <!-- ACTIONS -->
         <div class="flex items-center justify-between pt-2 font-mono text-xs">
-          <button id="tech-new-check-btn" type="button" class="py-2.5 px-3 text-inkMuted hover:text-ink bg-surface border border-hairline transition-colors cursor-pointer text-[11px] uppercase tracking-wider">
+          <button id="tech-new-check-btn" type="button" class="py-2.5 px-4 text-neutral-700 hover:text-neutral-950 bg-white border border-paperBorder hover:border-neutral-400 transition-colors cursor-pointer text-[11px] uppercase tracking-wider">
             ← Nouvelle vérification
           </button>
-          <button id="tech-share-btn" type="button" class="py-2.5 px-3 text-ink bg-subsurface hover:bg-hairline border border-hairline transition-colors cursor-pointer text-[11px] uppercase tracking-wider">
-            Copier le lien direct du dossier
+          <button id="tech-share-btn" type="button" class="py-2.5 px-4 text-white bg-neutral-950 hover:bg-neutral-800 transition-colors cursor-pointer text-[11px] uppercase tracking-wider font-semibold shadow-sm">
+            Copier le lien du dossier
           </button>
         </div>
       </div>
 
       <!-- =============================================================== -->
-      <!-- RAPPORT D'ENQUÊTE COMPLET (POST FACT-CHECKING)                   -->
+      <!-- RAPPORT DE FACT-CHECKING COMPLET                                 -->
       <!-- =============================================================== -->
       <div id="report-section" class="hidden space-y-6">
 
-        <!-- CARTE RÉCAPITULATIVE DU VERDICT // STYLE ATELIER BRUTALISTE -->
-        <div class="p-6 sm:p-8 bg-surface border border-hairline space-y-6">
+        <!-- CARTE DE VERDICT PRINCIPALE -->
+        <div class="p-6 sm:p-8 bg-white border border-paperBorder space-y-6 shadow-sm">
           
-          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-hairline pb-6">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-paperBorder pb-6">
             
-            <!-- Chiffre Géant & Tampon Officiel -->
+            <!-- Chiffre & Tampon Officiel -->
             <div class="flex items-center gap-5">
-              <div class="px-4 py-3 bg-subsurface border border-hairline flex flex-col items-center justify-center min-w-[80px]">
-                <span id="report-score" class="font-mono font-black text-3xl sm:text-4xl text-ink tabular-nums leading-none">0.0</span>
-                <span class="text-[9px] font-mono text-inkMuted tracking-wider mt-1.5">SUR 10</span>
+              <div class="px-4 py-3 bg-paper border border-paperBorder flex flex-col items-center justify-center min-w-[80px]">
+                <span id="report-score" class="font-mono font-black text-3xl sm:text-4xl text-neutral-950 tabular-nums leading-none">0.0</span>
+                <span class="text-[9px] font-mono text-neutral-500 tracking-wider mt-1.5 font-bold">SUR 10</span>
               </div>
 
               <div class="space-y-1.5">
-                <div class="text-[10px] font-mono uppercase text-inkMuted tracking-widest">INDICE DE VÉRACITÉ FORENSIQUE</div>
+                <div class="text-[10px] font-mono uppercase text-neutral-500 tracking-widest font-semibold">INDICE DE VÉRACITÉ</div>
                 <div>
-                  <span id="report-verdict-badge" class="px-3 py-1 text-xs font-mono font-bold uppercase tracking-widest bg-subsurface border border-hairline text-ink">
+                  <span id="report-verdict-badge" class="px-3 py-1 text-xs font-mono font-bold uppercase tracking-widest bg-paper border border-paperBorder text-neutral-950">
                     VERDICT EN ATTENTE
                   </span>
                 </div>
@@ -633,61 +431,61 @@
             </div>
 
             <div class="text-right sm:block hidden font-mono">
-              <span class="text-[10px] uppercase text-inkMuted block tracking-widest">PROTOCOLE DE VALIDATION</span>
-              <span class="text-xs text-ink/80">DuckDuckGo OSINT + Gemini / Groq</span>
+              <span class="text-[10px] uppercase text-neutral-500 block tracking-widest">SOURCES VÉRIFIÉES</span>
+              <span class="text-xs text-neutral-800">DuckDuckGo OSINT + Wikipédia</span>
             </div>
           </div>
 
-          <!-- RÉGLETTE LINÉAIRE SEGMENTÉE (Plus aucun donut circulaire) -->
+          <!-- RÉGLETTE LINÉAIRE SEGMENTÉE -->
           <div class="space-y-1.5 font-mono">
-            <div class="flex items-center justify-between text-[10px] text-inkMuted">
+            <div class="flex items-center justify-between text-[10px] text-neutral-500">
               <span>0.0 RÉFUTÉ</span>
-              <span>5.0 PARTIELLEMENT FONDÉ</span>
-              <span>10.0 CONFIRMÉ</span>
+              <span>5.0 PARTIELLEMENT VRAI</span>
+              <span>10.0 VÉRIFIÉ</span>
             </div>
-            <div class="w-full h-2.5 bg-subsurface border border-hairline relative overflow-hidden">
-              <div id="calibration-bar-fill" class="h-full bg-emerald-400 transition-all duration-700 w-0"></div>
+            <div class="w-full h-2.5 bg-paper border border-neutral-300 relative overflow-hidden">
+              <div id="calibration-bar-fill" class="h-full bg-emerald-600 transition-all duration-700 w-0"></div>
             </div>
           </div>
-          <!-- Élément invisible pour compatibilité stricte des scripts -->
+          <!-- Compatibilité scripts -->
           <svg class="hidden" viewBox="0 0 100 100">
             <circle id="gauge-fill" cx="50" cy="50" r="42" fill="none" stroke="#10b981" stroke-width="4" stroke-dasharray="263.89" stroke-dashoffset="263.89"/>
           </svg>
 
-          <!-- SYNTHÈSE CRITIQUE -->
+          <!-- SYNTHÈSE ÉDITORIALE -->
           <div class="pt-2">
-            <div class="text-[10px] font-mono uppercase tracking-widest text-inkMuted mb-2">SYNTHÈSE FORENSIQUE DES FAITS</div>
-            <p id="report-summary" class="text-sm text-ink leading-relaxed font-sans"></p>
+            <div class="text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-2 font-semibold">SYNTHÈSE DES FAITS</div>
+            <p id="report-summary" class="text-sm text-neutral-900 leading-relaxed font-sans"></p>
           </div>
 
         </div>
 
-        <!-- PIÈCES À CONVICTION & ALLÉGATIONS ANALYSÉES -->
+        <!-- ALLÉGATIONS ANALYSÉES -->
         <div class="space-y-3">
-          <div class="flex items-center justify-between border-b border-hairline pb-2 font-mono">
-            <div class="text-[10px] uppercase tracking-widest text-inkMuted">PIÈCES À CONVICTION & ALLÉGATIONS ISOLÉES</div>
-            <span id="claims-count-badge" class="text-[10px] text-inkMuted">0 allégations</span>
+          <div class="flex items-center justify-between border-b border-paperBorder pb-2 font-mono">
+            <div class="text-[10px] uppercase tracking-widest text-neutral-600 font-semibold">AFFIRMATIONS ISOLÉES DANS LA VIDÉO</div>
+            <span id="claims-count-badge" class="text-[10px] text-neutral-500">0 affirmations</span>
           </div>
 
           <div id="claims-list" class="space-y-3">
-            <!-- Injecté dynamiquement par le script -->
+            <!-- Injecté dynamiquement -->
           </div>
         </div>
 
-        <!-- PROTOCOLE OPÉRATIONNEL & CONDUITE À TENIR -->
-        <div id="action-kit-box" class="p-6 bg-surface border border-hairline space-y-2.5">
-          <div class="text-[10px] font-mono uppercase text-inkMuted tracking-widest">
-            PROTOCOLE OPÉRATIONNEL & CONDUITE À TENIR
+        <!-- CONDUITE À TENIR -->
+        <div id="action-kit-box" class="p-6 bg-white border border-paperBorder space-y-2.5 shadow-sm">
+          <div class="text-[10px] font-mono uppercase text-neutral-600 tracking-widest font-semibold">
+            CONDUITE À TENIR & RECOMMANDATION
           </div>
-          <p id="action-kit-text" class="text-xs sm:text-sm text-ink/90 leading-relaxed font-sans whitespace-pre-line"></p>
+          <p id="action-kit-text" class="text-xs sm:text-sm text-neutral-800 leading-relaxed font-sans whitespace-pre-line"></p>
         </div>
 
-        <!-- BOUTONS D'ACTION DU DOSSIER -->
+        <!-- BOUTONS D'ACTION DU RAPPORT -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 font-mono text-xs">
           <button 
             id="copy-report-btn" 
             type="button" 
-            class="py-3 px-3 font-mono uppercase text-ink bg-surface hover:bg-subsurface border border-hairline transition-colors flex items-center justify-center gap-2 cursor-pointer text-[11px] tracking-wider"
+            class="py-3 px-3 font-mono uppercase text-neutral-800 bg-white hover:bg-paper border border-neutral-300 transition-colors flex items-center justify-center gap-2 cursor-pointer text-[11px] tracking-wider"
           >
             <span>Copier le rapport</span>
           </button>
@@ -695,7 +493,7 @@
           <button 
             id="share-link-btn" 
             type="button" 
-            class="py-3 px-3 font-mono uppercase font-bold text-obsidian bg-ink hover:bg-white transition-colors flex items-center justify-center gap-2 cursor-pointer text-[11px] tracking-wider"
+            class="py-3 px-3 font-mono uppercase font-bold text-white bg-neutral-950 hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 cursor-pointer text-[11px] tracking-wider shadow-sm"
           >
             <span>Partager le lien</span>
           </button>
@@ -703,7 +501,7 @@
           <button 
             id="new-check-btn" 
             type="button" 
-            class="py-3 px-3 font-mono uppercase text-inkMuted hover:text-ink bg-obsidian hover:bg-surface border border-hairline transition-colors flex items-center justify-center gap-2 cursor-pointer text-[11px] tracking-wider"
+            class="py-3 px-3 font-mono uppercase text-neutral-600 hover:text-neutral-950 bg-paper hover:bg-white border border-neutral-300 transition-colors flex items-center justify-center gap-2 cursor-pointer text-[11px] tracking-wider"
           >
             <span>Autre vérification</span>
           </button>
@@ -711,26 +509,26 @@
 
       </div>
 
-    </main>
-  </div>
+    </div>
+  </main>
 
-  <!-- PIED DE PAGE ÉDITORIAL STUDIO -->
-  <footer class="border-t border-hairline bg-obsidian py-6 text-[10px] font-mono text-inkMuted">
-    <div class="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-      <p>ReelCheck © 2026 — Rigueur & Analyse Forensique Indépendante</p>
+  <!-- PIED DE PAGE DISCRET DANS LE MÊME STYLE PAPIER -->
+  <footer class="border-t border-paperBorder bg-paper py-6 text-[11px] font-mono text-paperMuted">
+    <div class="max-w-3xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <p>ReelCheck © 2026 — Fact-checking indépendant de Reels Instagram</p>
       <div class="flex items-center gap-4">
-        <a href="/health" class="hover:text-ink transition-colors">API Health</a>
+        <a href="/health" class="hover:text-neutral-950 transition-colors">API Health</a>
         <span>•</span>
-        <a href="/static/manifest.json" class="hover:text-ink transition-colors">Manifest PWA</a>
+        <a href="/static/manifest.json" class="hover:text-neutral-950 transition-colors">Manifest PWA</a>
         <span>•</span>
-        <a href="https://t.me/ReelsFactCheckBot" target="_blank" class="hover:text-ink transition-colors">Telegram</a>
+        <a href="https://t.me/ReelsFactCheckBot" target="_blank" class="hover:text-neutral-950 transition-colors">Telegram</a>
       </div>
     </div>
   </footer>
 
-  <!-- NOTIFICATION DISCRÈTE (TOAST SANS EMOJI) -->
+  <!-- NOTIFICATION DISCRÈTE (TOAST) -->
   <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 transform translate-y-12 opacity-0">
-    <div class="px-4 py-2.5 bg-ink text-obsidian font-mono text-xs font-bold shadow-2xl flex items-center gap-2 border border-slate-300">
+    <div class="px-4 py-2.5 bg-neutral-950 text-white font-mono text-xs font-bold shadow-2xl flex items-center gap-2 border border-neutral-700">
       <span id="toast-icon" class="text-[10px]">[OK]</span>
       <span id="toast-message">Action effectuée</span>
     </div>
@@ -813,9 +611,9 @@
         alertBanner.textContent = `[!] ${msg}`;
         alertBanner.className = 'mb-6 p-4 border text-xs font-mono leading-relaxed transition-all block ';
         if (isWarning) {
-          alertBanner.classList.add('bg-amber-950/40', 'border-amber-800/60', 'text-amber-200');
+          alertBanner.classList.add('bg-amber-50', 'border-amber-300', 'text-amber-900');
         } else {
-          alertBanner.classList.add('bg-rose-950/40', 'border-rose-800/60', 'text-rose-200');
+          alertBanner.classList.add('bg-rose-50', 'border-rose-300', 'text-rose-900');
         }
       }
 
@@ -827,13 +625,13 @@
       // Tab Switching
       function switchTab(mode) {
         if (mode === 'url') {
-          tabUrlBtn.className = 'px-3.5 py-2 font-medium border-t-2 border-ink text-ink bg-surface transition-all flex items-center gap-2 cursor-pointer';
-          tabUploadBtn.className = 'px-3.5 py-2 font-medium border-t-2 border-transparent text-inkMuted hover:text-ink transition-all flex items-center gap-2 cursor-pointer';
+          tabUrlBtn.className = 'px-3 py-1.5 sm:px-3.5 sm:py-1.5 font-semibold bg-neutral-950 text-white rounded-none transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer text-[11px] sm:text-xs';
+          tabUploadBtn.className = 'px-3 py-1.5 sm:px-3.5 sm:py-1.5 font-medium text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100 rounded-none transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer text-[11px] sm:text-xs';
           paneUrl.classList.remove('hidden');
           paneUpload.classList.add('hidden');
         } else {
-          tabUploadBtn.className = 'px-3.5 py-2 font-medium border-t-2 border-ink text-ink bg-surface transition-all flex items-center gap-2 cursor-pointer';
-          tabUrlBtn.className = 'px-3.5 py-2 font-medium border-t-2 border-transparent text-inkMuted hover:text-ink transition-all flex items-center gap-2 cursor-pointer';
+          tabUploadBtn.className = 'px-3 py-1.5 sm:px-3.5 sm:py-1.5 font-semibold bg-neutral-950 text-white rounded-none transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer text-[11px] sm:text-xs';
+          tabUrlBtn.className = 'px-3 py-1.5 sm:px-3.5 sm:py-1.5 font-medium text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100 rounded-none transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer text-[11px] sm:text-xs';
           paneUpload.classList.remove('hidden');
           paneUrl.classList.add('hidden');
         }
@@ -864,7 +662,7 @@
             switchTab('url');
             urlInput.value = sampleUrl;
             urlInput.focus();
-            showToast('Dossier échantillon chargé dans la console', '[DOSSIER]');
+            showToast('Exemple chargé dans le formulaire');
           }
         });
       });
@@ -875,14 +673,14 @@
       ['dragenter', 'dragover'].forEach(eventName => {
         dropzone.addEventListener(eventName, (e) => {
           e.preventDefault();
-          dropzone.classList.add('border-ink', 'bg-subsurface');
+          dropzone.classList.add('border-neutral-900', 'bg-neutral-100');
         });
       });
 
       ['dragleave', 'drop'].forEach(eventName => {
         dropzone.addEventListener(eventName, (e) => {
           e.preventDefault();
-          dropzone.classList.remove('border-ink', 'bg-subsurface');
+          dropzone.classList.remove('border-neutral-900', 'bg-neutral-100');
         });
       });
 
@@ -902,7 +700,7 @@
       function handleFileSelected(file) {
         const maxBytes = 25 * 1024 * 1024;
         if (file.size > maxBytes) {
-          showAlert("Le fichier dépasse le plafond de sécurité de 25 Mo.");
+          showAlert("Le fichier dépasse la taille maximale autorisée de 25 Mo.");
           return;
         }
 
@@ -939,13 +737,13 @@
           const data = await res.json();
 
           if (!res.ok) {
-            handleSubmissionError(data.error || "Échec d'initialisation de l'investigation");
+            handleSubmissionError(data.error || "Échec d'initialisation de la vérification");
             return;
           }
 
           pollJobStatus(data.job_id);
         } catch (err) {
-          handleSubmissionError("Erreur réseau lors de la transmission du dossier.");
+          handleSubmissionError("Erreur réseau lors de la vérification.");
         }
       });
 
@@ -968,13 +766,13 @@
           const data = await res.json();
 
           if (!res.ok) {
-            handleSubmissionError(data.error || "Échec de téléversement de la pièce média.");
+            handleSubmissionError(data.error || "Échec de téléversement du fichier.");
             return;
           }
 
           pollJobStatus(data.job_id);
         } catch (err) {
-          handleSubmissionError("Erreur de transfert lors de l'analyse du média.");
+          handleSubmissionError("Erreur de transfert lors de l'analyse.");
         }
       });
 
@@ -1009,10 +807,10 @@
               renderReportCard(job.report, job.report_id);
             } else if (job.status === 'failed') {
               clearInterval(pollInterval);
-              handleSubmissionError(job.error || "Échec de l'investigation forensique.");
+              handleSubmissionError(job.error || "Échec de la vérification.");
             }
           } catch (err) {
-            // Re-polling continues on transient network glitches
+            // Re-polling continues
           }
         }, 1500);
       }
@@ -1030,12 +828,12 @@
         const currentStepNum = stageOrder[stage] || 1;
 
         const stageLabels = {
-          'queued': "Mise en file d'attente du dossier...",
-          'downloading': "Extraction du flux média en cours...",
-          'transcribing': "Transcription audio & isolement des allégations...",
-          'factchecking': "Recoupement simultané sur sources ouvertes...",
-          'formatting': "Calcul de l'indice de véracité & synthèse critique...",
-          'completed': "Investigation conclue avec succès."
+          'queued': "Mise en file d'attente...",
+          'downloading': "Extraction du flux média Instagram...",
+          'transcribing': "Transcription audio & extraction des allégations...",
+          'factchecking': "Recoupement simultané sur DuckDuckGo & Wikipédia...",
+          'formatting': "Calcul du score de véracité & synthèse...",
+          'completed': "Vérification terminée."
         };
 
         progressStageText.textContent = stageLabels[stage] || `Traitement : ${stage}`;
@@ -1050,20 +848,20 @@
           const label = el.querySelector('.step-label');
 
           if (stepNum < currentStepNum || stage === 'completed') {
-            el.className = 'flex items-center gap-3 text-ink transition-colors';
-            indicator.className = 'step-indicator w-4 h-4 bg-ink text-obsidian font-mono font-bold flex items-center justify-center text-[10px]';
+            el.className = 'flex items-center gap-3 text-neutral-900 transition-colors';
+            indicator.className = 'step-indicator w-4 h-4 bg-neutral-950 text-white font-mono font-bold flex items-center justify-center text-[10px]';
             indicator.textContent = '✓';
-            label.className = 'step-label text-ink';
+            label.className = 'step-label text-neutral-900';
           } else if (stepNum === currentStepNum) {
-            el.className = 'flex items-center gap-3 text-ink transition-colors';
-            indicator.className = 'step-indicator w-4 h-4 border border-ink text-ink font-mono font-bold flex items-center justify-center text-[10px] status-dot-pulse';
+            el.className = 'flex items-center gap-3 text-neutral-950 transition-colors';
+            indicator.className = 'step-indicator w-4 h-4 border border-neutral-950 text-neutral-950 font-mono font-bold flex items-center justify-center text-[10px] status-dot-pulse';
             indicator.textContent = `${stepNum}`;
-            label.className = 'step-label text-ink font-medium';
+            label.className = 'step-label text-neutral-950 font-semibold';
           } else {
-            el.className = 'flex items-center gap-3 text-inkMuted transition-colors';
-            indicator.className = 'step-indicator w-4 h-4 border border-hairline flex items-center justify-center text-[10px] text-inkMuted';
+            el.className = 'flex items-center gap-3 text-neutral-400 transition-colors';
+            indicator.className = 'step-indicator w-4 h-4 border border-neutral-300 flex items-center justify-center text-[10px] text-neutral-400';
             indicator.textContent = `${stepNum}`;
-            label.className = 'step-label text-inkMuted';
+            label.className = 'step-label text-neutral-400';
           }
         });
       }
@@ -1178,7 +976,7 @@
             techForceFullBtn.onclick = async () => {
               const url = (currentReport && currentReport.url) || urlInput.value.trim();
               if (!url) {
-                showToast('Recherchez par URL pour forcer le fact-checking complet', '[INFO]');
+                showToast('Insérez une URL pour relancer le fact-checking complet', '[INFO]');
                 return;
               }
               startProcessingUI();
@@ -1190,12 +988,12 @@
                 });
                 const data = await res.json();
                 if (!res.ok) {
-                  handleSubmissionError(data.error || "Échec de réinitialisation");
+                  handleSubmissionError(data.error || "Échec de relance");
                   return;
                 }
                 pollJobStatus(data.job_id);
               } catch (err) {
-                handleSubmissionError("Erreur réseau lors de la reprise.");
+                handleSubmissionError("Erreur réseau.");
               }
             };
           }
@@ -1243,44 +1041,44 @@
         if (calibBar) {
           const pct = Math.min(Math.max(score, 0), 10) * 10;
           calibBar.style.width = `${pct}%`;
-          if (score >= 7.0) calibBar.className = 'h-full bg-emerald-400 transition-all duration-700';
-          else if (score >= 4.0) calibBar.className = 'h-full bg-amber-400 transition-all duration-700';
-          else calibBar.className = 'h-full bg-rose-500 transition-all duration-700';
+          if (score >= 7.0) calibBar.className = 'h-full bg-emerald-600 transition-all duration-700';
+          else if (score >= 4.0) calibBar.className = 'h-full bg-amber-600 transition-all duration-700';
+          else calibBar.className = 'h-full bg-rose-600 transition-all duration-700';
         }
 
-        // Verdict Badge (Typographic Stamps)
+        // Verdict Badge
         const verdict = (report.verdict || 'NON VÉRIFIABLE').toUpperCase();
         reportVerdictBadge.textContent = `[ ${verdict} ]`;
         if (verdict === 'VRAI' || verdict.includes('CONFIRMÉ')) {
-          reportVerdictBadge.className = 'px-3 py-1 text-xs font-mono font-bold uppercase tracking-wider bg-emerald-950/40 text-emerald-300 border border-emerald-600/50';
+          reportVerdictBadge.className = 'px-3 py-1 text-xs font-mono font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300';
         } else if (verdict === 'FAUX' || verdict.includes('RÉFUTÉ')) {
-          reportVerdictBadge.className = 'px-3 py-1 text-xs font-mono font-bold uppercase tracking-wider bg-rose-950/40 text-rose-300 border border-rose-600/50';
+          reportVerdictBadge.className = 'px-3 py-1 text-xs font-mono font-bold uppercase tracking-wider bg-rose-50 text-rose-800 border border-rose-300';
         } else if (verdict.includes('PARTIELLEMENT') || verdict.includes('TROMPEUR')) {
-          reportVerdictBadge.className = 'px-3 py-1 text-xs font-mono font-bold uppercase tracking-wider bg-amber-950/40 text-amber-300 border border-amber-600/50';
+          reportVerdictBadge.className = 'px-3 py-1 text-xs font-mono font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-300';
         } else {
-          reportVerdictBadge.className = 'px-3 py-1 text-xs font-mono font-bold uppercase tracking-wider bg-subsurface text-ink border border-hairline';
+          reportVerdictBadge.className = 'px-3 py-1 text-xs font-mono font-bold uppercase tracking-wider bg-paper text-neutral-800 border border-neutral-300';
         }
 
-        // Executive Summary
+        // Summary
         reportSummary.textContent = report.summary || report.analysis || "Aucune synthèse rédigée disponible.";
 
-        // Claims list (Evidence breakdown)
+        // Claims list
         claimsList.innerHTML = '';
         const verdicts = report.verdicts || [];
-        claimsCountBadge.textContent = `[ ${verdicts.length} PIÈCE${verdicts.length > 1 ? 'S' : ''} ]`;
+        claimsCountBadge.textContent = `[ ${verdicts.length} AFFIRMATION${verdicts.length > 1 ? 'S' : ''} ]`;
 
         if (verdicts.length === 0) {
-          claimsList.innerHTML = '<p class="text-xs font-mono text-inkMuted italic p-4 border border-hairline">Aucune affirmation factuelle vérifiable isolée dans ce document.</p>';
+          claimsList.innerHTML = '<p class="text-xs font-mono text-neutral-500 italic p-4 border border-paperBorder bg-white">Aucune affirmation factuelle vérifiable isolée dans cette vidéo.</p>';
         } else {
           verdicts.forEach((v, i) => {
             const claimCard = document.createElement('div');
-            claimCard.className = 'p-5 bg-surface border border-hairline space-y-3';
+            claimCard.className = 'p-5 bg-white border border-paperBorder space-y-3 shadow-sm';
 
-            let badgeClass = 'text-inkMuted border border-hairline';
+            let badgeClass = 'text-neutral-600 border border-neutral-300';
             const vText = (v.verdict || '').toUpperCase();
-            if (vText === 'VRAI') badgeClass = 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/60';
-            else if (vText === 'FAUX') badgeClass = 'bg-rose-950/40 text-rose-400 border border-rose-800/60';
-            else if (vText.includes('PARTIELLEMENT') || vText.includes('TROMPEUR')) badgeClass = 'bg-amber-950/40 text-amber-400 border border-amber-800/60';
+            if (vText === 'VRAI') badgeClass = 'bg-emerald-50 text-emerald-800 border border-emerald-300';
+            else if (vText === 'FAUX') badgeClass = 'bg-rose-50 text-rose-800 border border-rose-300';
+            else if (vText.includes('PARTIELLEMENT') || vText.includes('TROMPEUR')) badgeClass = 'bg-amber-50 text-amber-800 border border-amber-300';
 
             // Safe Sources HTML
             let sourcesHtml = '';
@@ -1288,12 +1086,12 @@
               const safeSources = v.sources.filter(s => typeof s === 'string' && (s.startsWith('http://') || s.startsWith('https://')));
               if (safeSources.length > 0) {
                 sourcesHtml = `
-                  <div class="pt-2 border-t border-hairline flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
-                    <span class="text-inkMuted uppercase">PIÈCES DE RÉFÉRENCE :</span>
+                  <div class="pt-2 border-t border-paperBorder flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
+                    <span class="text-neutral-500 uppercase">SOURCES VÉRIFIÉES :</span>
                     ${safeSources.map(s => {
                       let domain = 'Source';
                       try { domain = new URL(s).hostname.replace('www.', ''); } catch (e) {}
-                      return `<a href="${escapeHtml(s)}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 bg-subsurface hover:bg-hairline text-ink hover:text-white transition-colors border border-hairline flex items-center gap-1">${escapeHtml(domain)} ↗</a>`;
+                      return `<a href="${escapeHtml(s)}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 bg-paper hover:bg-neutral-200 text-neutral-800 transition-colors border border-neutral-300 flex items-center gap-1">${escapeHtml(domain)} ↗</a>`;
                     }).join('')}
                   </div>
                 `;
@@ -1302,11 +1100,11 @@
 
             claimCard.innerHTML = `
               <div class="flex items-start justify-between gap-3 font-mono text-xs">
-                <span class="text-inkMuted">[PIÈCE #${String(i + 1).padStart(2, '0')}]</span>
+                <span class="text-neutral-500 font-semibold">[AFFIRMATION #${String(i + 1).padStart(2, '0')}]</span>
                 <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider ${badgeClass}">${escapeHtml(v.verdict || 'INDÉTERMINÉ')}</span>
               </div>
-              <p class="text-sm font-sans font-medium text-ink leading-relaxed">« ${escapeHtml(v.claim || '')} »</p>
-              <p class="text-xs font-sans text-inkMuted leading-relaxed">${escapeHtml(v.explanation || '')}</p>
+              <p class="text-sm font-sans font-semibold text-neutral-950 leading-relaxed">« ${escapeHtml(v.claim || '')} »</p>
+              <p class="text-xs font-sans text-neutral-700 leading-relaxed">${escapeHtml(v.explanation || '')}</p>
               ${sourcesHtml}
             `;
             claimsList.appendChild(claimCard);
@@ -1365,16 +1163,16 @@
 
       function formatReportText(rep) {
         let lines = [];
-        lines.push(`[DOSSIER FORENSIQUE REELCHECK]`);
-        lines.push(`Verdict : ${(rep.verdict || 'INCONNU').toUpperCase()} (Indice : ${(rep.score || 0).toFixed(1)}/10)`);
+        lines.push(`[RAPPORT DE FACT-CHECKING REELCHECK]`);
+        lines.push(`Verdict : ${(rep.verdict || 'INCONNU').toUpperCase()} (Score : ${(rep.score || 0).toFixed(1)}/10)`);
         lines.push(`\nSYNTHÈSE :`);
         lines.push(rep.summary || rep.analysis || 'N/A');
         
         if (rep.verdicts && rep.verdicts.length > 0) {
-          lines.push(`\nPIÈCES À CONVICTION :`);
+          lines.push(`\nAFFIRMATIONS ANALYSÉES :`);
           rep.verdicts.forEach((v, i) => {
             lines.push(`\n#${i + 1} [${(v.verdict || '').toUpperCase()}] : ${v.claim}`);
-            lines.push(`Note : ${v.explanation}`);
+            lines.push(`Explication : ${v.explanation}`);
             if (v.sources && v.sources.length > 0) {
               lines.push(`Sources : ${v.sources.join(', ')}`);
             }
