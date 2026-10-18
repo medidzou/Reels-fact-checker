@@ -10,7 +10,7 @@ from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 EXTRACTION_PROMPT = """Analyze this audio recording from an Instagram Reel.
 Perform the following tasks:
@@ -237,6 +237,7 @@ def transcribe_and_extract(
             return groq_transcribe(audio_path, client=groq_client)
         return TranscriptionResult(error=err_msg)
 
+    is_mock = client is not None
     # Setup Google GenAI Client
     if client is None:
         api_key = os.environ.get("GEMINI_API_KEY")
@@ -249,7 +250,11 @@ def transcribe_and_extract(
         except Exception as init_err:
             return _fallback_or_error(f"Failed to initialize Gemini client: {init_err}")
 
-    model_name = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+    preferred_model = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+    candidates = [preferred_model]
+    if not is_mock and "gemini-3.5-flash" not in candidates:
+        candidates.append("gemini-3.5-flash")
+
     uploaded_file = None
 
     try:
@@ -262,12 +267,23 @@ def transcribe_and_extract(
         if context_text and context_text.strip():
             prompt = f"{EXTRACTION_PROMPT}\n\nADDITIONAL POST CONTEXT (Title / Caption / Metadata):\n{context_text.strip()}"
 
-        # Generate multimodal transcription and claim extraction
-        logger.info(f"Requesting transcription and claim extraction with model {model_name}...")
-        response = client.models.generate_content(
-            model=model_name,
-            contents=[uploaded_file, prompt],
-        )
+        # Generate multimodal transcription and claim extraction with candidate cascade
+        response = None
+        last_err = None
+        for model_name in candidates:
+            try:
+                logger.info(f"Requesting transcription and claim extraction with model {model_name}...")
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=[uploaded_file, prompt],
+                )
+                break
+            except Exception as cand_err:
+                last_err = cand_err
+                logger.warning(f"Gemini model {model_name} failed during transcription: {cand_err}")
+
+        if response is None:
+            raise last_err or RuntimeError("No Gemini model candidate succeeded.")
 
         raw_text = response.text if hasattr(response, "text") and response.text else ""
         result = parse_gemini_response(raw_text)

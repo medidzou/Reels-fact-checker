@@ -458,3 +458,63 @@ def test_generate_action_kit_no_api_key(monkeypatch):
     result = generate_action_kit(["Claim"], ["Context"])
     assert result is None
 
+
+def test_parse_verdict_response_cleans_markdown_prefixes():
+    """Verify that parse_verdict_response strips orphan markdown and explanation prefixes."""
+    from pipeline.factchecker import parse_verdict_response
+
+    raw_text = (
+        "VERDICT: FAUX\n"
+        "EXPLANATION: **Explication : Les chiffres sont inexacts et réfutés.\n"
+        "SOURCES:\n"
+        "- https://example.com/source1"
+    )
+    verdict = parse_verdict_response(raw_text, "Affirmation test")
+    assert verdict.explanation == "Les chiffres sont inexacts et réfutés."
+    assert not verdict.explanation.startswith("**")
+    assert not verdict.explanation.lower().startswith("explication")
+
+
+def test_synthesize_verdict_filters_hallucinated_sources():
+    """Verify that synthesize_verdict drops hallucinated URLs when valid search context exists."""
+    mock_client = MagicMock()
+    mock_response = MagicMock()
+    mock_response.text = (
+        "VERDICT: VRAI\n"
+        "EXPLANATION: Analyse confirmée.\n"
+        "SOURCES:\n"
+        "- https://legifrance.gouv.fr/decret/2026-385\n"
+        "- https://hallucinated-fake-site.com/fake-doc.pdf"
+    )
+    mock_client.models.generate_content.return_value = mock_response
+
+    verdict = synthesize_verdict(
+        claim="Les droits sont encadrés par décret",
+        search_context="Source officielle: https://legifrance.gouv.fr/decret/2026-385",
+        gemini_client=mock_client,
+    )
+
+    assert "https://legifrance.gouv.fr/decret/2026-385" in verdict.sources
+    assert "https://hallucinated-fake-site.com/fake-doc.pdf" not in verdict.sources
+
+
+def test_synthesize_verdict_empty_context_drops_hallucinated_sources():
+    """Verify that synthesize_verdict eliminates sources completely when search context has no results."""
+    mock_client = MagicMock()
+    mock_response = MagicMock()
+    mock_response.text = (
+        "VERDICT: NON VÉRIFIABLE\n"
+        "EXPLANATION: Impossible de confirmer sans sources externes.\n"
+        "SOURCES:\n"
+        "- https://hallucinated-fake-site.com/fake-doc.pdf"
+    )
+    mock_client.models.generate_content.return_value = mock_response
+
+    verdict = synthesize_verdict(
+        claim="Fait non vérifiable",
+        search_context="Aucun résultat trouvé sur le web.",
+        gemini_client=mock_client,
+    )
+
+    assert verdict.sources == []
+

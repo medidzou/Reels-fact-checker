@@ -294,8 +294,11 @@ def groq_synthesize(
             raw_text = getattr(chat_completion.choices[0].message, "content", "") or ""
 
         verdict = parse_verdict_response(raw_text, clean_claim)
-        if not verdict.sources and search_context:
-            verdict.sources = _extract_urls(search_context)
+        search_urls = _extract_urls(search_context) if search_context else []
+        if not search_context or "aucun résultat" in search_context.lower():
+            verdict.sources = []
+        elif not verdict.sources and search_urls:
+            verdict.sources = search_urls[:3]
         return verdict
     except Exception as exc:
         logger.error("Groq verdict synthesis error for claim '%s': %s", clean_claim, exc, exc_info=True)
@@ -303,7 +306,7 @@ def groq_synthesize(
             claim=clean_claim,
             verdict="NON VÉRIFIABLE",
             explanation=f"Erreur lors de la synthèse Groq: {exc}",
-            sources=_extract_urls(search_context),
+            sources=_extract_urls(search_context) if search_context and "aucun résultat" not in search_context.lower() else [],
         )
 
 

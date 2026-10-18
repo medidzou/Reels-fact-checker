@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
 
 SYNTHESIS_PROMPT = """Tu es un expert vérificateur de faits (Fact-Checker) forensique et rigoureux.
 Date de référence : {current_date}
@@ -21,12 +21,16 @@ Résultats de recherche et contexte :
 {search_context}
 
 Règles d'analyse et d'épistémologie strictes :
-1. Hiérarchie des preuves : Privilégie les sources scientifiques indexées (PubMed, Nature, Science, Lancet), institutionnelles (Cour des comptes, Conseil d'État, INSERM, CNRS, INSEE, ministères), agences de presse de référence (AFP Factuel, Reuters, AP) et textes de lois/décrets officiels (Légifrance, Service-Public).
-2. Règle anti-scepticisme paresseux : Ne décrète JAMAIS qu'un chiffre précis, un audit public ou un texte de loi "n'existe pas" ou est "FAUX" simplement parce que les quelques extraits de recherche fournis ne le citent pas textuellement. Si l'affirmation cite un rapport d'audit public (ex. Cour des comptes), un décret récent ou un barème officiel, vérifie la vraisemblance de l'ordre de grandeur et distingue rigoureusement « contredit par les preuves » de « non trouvé dans les extraits ».
-3. Cohérence sociologique et démographique : Veille scrupuleusement à ne pas mélanger des populations différentes (ne confonds pas des collégiens ou des élèves PISA avec des étudiants universitaires, ni le régime des prêts étudiants américains avec l'enseignement supérieur français). Reste rigoureusement sur le périmètre défini par l'affirmation.
-4. Actualisation réglementaire (2024-2026) : Prends en compte les réformes et textes récents (notamment les décrets de 2026 revalorisant les frais universitaires ou encadrant les exonérations). Les anciens chiffres de 2019 ne doivent pas servir à juger faux des montants revalorisés en 2026.
-5. Corrélation vs Causalité : Si l'affirmation transforme une corrélation ou une étude préliminaire en vérité absolue, classe-la en "PARTIELLEMENT VRAI" ou "FAUX" et explicite le biais méthodologique.
-6. Non-déductibilité : Si les preuves sont totalement absentes, hors-sujet ou insuffisantes pour trancher avec certitude absolue, utilise impérativement "NON VÉRIFIABLE". Ne devine jamais.
+1. Hiérarchie des preuves et RAG strict : Privilégie les sources scientifiques indexées (PubMed, Nature, Science, Lancet), institutionnelles (Cour des comptes, Conseil d'État, INSERM, CNRS, INSEE, ministères, SSMSI, justice), agences de presse de référence (AFP Factuel, Reuters, AP) et textes de lois/décrets officiels (Légifrance, Service-Public).
+2. ZÉRO HALLUCINATION DE SOURCES : Tu ne dois JAMAIS inventer d'URL, de DOI, de titre d'étude fictif ou d'organisme disparu (par exemple, l'ONDRP/ODR a été dissous en 2020 ; les statistiques policières de la délinquance sont produites par le SSMSI et les statistiques judiciaires par le ministère de la Justice / SSER). Dans la section SOURCES, tu ne dois citer STRICTEMENT QUE des URLs réelles qui figurent mot pour mot dans les 'Résultats de recherche et contexte' ci-dessus. Si aucune URL n'est disponible dans le contexte, laisse la section SOURCES vide.
+3. Rigueur méthodologique et distinctions pénales :
+   - Pour les statistiques de délinquance et violences sexuelles, distingue impérativement les personnes mises en cause par la police/gendarmerie (statistiques SSMSI) des personnes définitivement condamnées par les tribunaux (statistiques judiciaires SSER/casier judiciaire). Si une statistique correspond à l'une de ces catégories (ex. ~99 % des condamnés pour viol sont des hommes), ne la qualifie pas de FAUX.
+   - Ne confonds pas les personnes étrangères (critère de nationalité actuelle hors France, ministère de l'Intérieur) et les personnes immigrées (critère INSEE de personnes nées étrangères à l'étranger).
+   - Ne confonds pas des populations scolaires ou collégiennes (ex. enquêtes PISA) avec des étudiants universitaires.
+4. Règle anti-scepticisme paresseux : Ne décrète JAMAIS qu'un chiffre précis, un audit public ou un texte de loi "n'existe pas" ou est "FAUX" simplement parce que les quelques extraits de recherche fournis ne le citent pas textuellement. Si l'affirmation cite un rapport d'audit public (ex. Cour des comptes), un décret récent ou un barème officiel, vérifie la vraisemblance de l'ordre de grandeur et distingue rigoureusement « contredit par les preuves » de « non trouvé dans les extraits ».
+5. Actualisation réglementaire : Prends en compte les réformes et textes récents (notamment les décrets revalorisant les frais universitaires ou encadrant les exonérations). Les anciens chiffres de 2019 ne doivent pas servir à juger faux des montants revalorisés récemment.
+6. Corrélation vs Causalité : Si l'affirmation transforme une corrélation ou une étude préliminaire en vérité absolue, classe-la en "PARTIELLEMENT VRAI" ou "FAUX" et explicite le biais méthodologique.
+7. Non-déductibilité : Si les preuves sont totalement absentes, hors-sujet ou insuffisantes pour trancher avec certitude absolue, utilise impérativement "NON VÉRIFIABLE". Ne devine jamais.
 
 Format de réponse requis :
 VERDICT: <VRAI | FAUX | PARTIELLEMENT VRAI | NON VÉRIFIABLE>
@@ -173,17 +177,43 @@ def search_claim(claim: str, ddgs_client: Optional[Any] = None) -> str:
             import warnings
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*duckduckgo_search.*")
-                ddgs_client = DDGS(timeout=5)
+                ddgs_client = DDGS(timeout=10)
 
-        raw_results = ddgs_client.text(clean_claim, max_results=3 if is_mock else 5)
-        all_results = list(raw_results or [])
+        all_results = []
+        if is_mock:
+            raw_results = ddgs_client.text(clean_claim, max_results=3)
+            all_results = list(raw_results or [])
+        else:
+            # Production: try backends 'html' then 'lite' with timeout=10
+            for backend in ("html", "lite"):
+                try:
+                    raw_results = ddgs_client.text(clean_claim, max_results=5, backend=backend)
+                    if raw_results:
+                        all_results = list(raw_results)
+                        break
+                except Exception as b_err:
+                    logger.debug("DDGS backend %s failed for '%s': %s", backend, clean_claim, b_err)
+
+            # If full sentence search returned nothing and claim is long, try simplified keyword query
+            if not all_results and len(clean_claim) > 50:
+                words = [w for w in re.sub(r"[^\w\s]", " ", clean_claim).split() if len(w) > 3][:6]
+                if words:
+                    simplified_query = " ".join(words)
+                    for backend in ("html", "lite"):
+                        try:
+                            raw_results = ddgs_client.text(simplified_query, max_results=5, backend=backend)
+                            if raw_results:
+                                all_results = list(raw_results)
+                                break
+                        except Exception as b_err:
+                            logger.debug("DDGS simplified query failed (%s): %s", backend, b_err)
 
         # In production mode: perform secondary targeted institutional query if applicable
-        if not is_mock:
+        if not is_mock and all_results:
             inst_query = _detect_institutional_query(clean_claim)
             if inst_query and inst_query.lower() != clean_claim.lower():
                 try:
-                    inst_results = ddgs_client.text(inst_query, max_results=3)
+                    inst_results = ddgs_client.text(inst_query, max_results=3, backend="html")
                     if inst_results:
                         seen_hrefs = {item.get("href") for item in all_results if isinstance(item, dict)}
                         for it in inst_results:
@@ -310,6 +340,10 @@ def parse_verdict_response(raw_text: str, claim: str) -> Verdict:
         explanation = sections.get("explanation", "")
         raw_sources = sections.get("sources", "")
 
+        # Clean explanation of orphan leading asterisks, 'Explication :', etc.
+        explanation = re.sub(r"^(?:\*\*)?\s*(?:explication|explanation)?\s*(?:\*\*)?\s*:\s*", "", explanation, flags=re.IGNORECASE).strip()
+        explanation = re.sub(r"^\*\*(?!\*)", "", explanation).strip()
+
         sources = _extract_urls(raw_sources)
         if not sources:
             # Fallback to search all text for URLs
@@ -324,10 +358,11 @@ def parse_verdict_response(raw_text: str, claim: str) -> Verdict:
 
     # 3. Fallback: unformatted text
     urls = _extract_urls(text)
+    clean_text = re.sub(r"^(?:\*\*)?\s*(?:explication|explanation)?\s*(?:\*\*)?\s*:\s*", "", text, flags=re.IGNORECASE).strip()
     return Verdict(
         claim=claim,
-        verdict=_normalize_verdict(text),
-        explanation=text,
+        verdict=_normalize_verdict(clean_text),
+        explanation=clean_text,
         sources=urls,
     )
 
@@ -371,26 +406,60 @@ def synthesize_verdict(
             claim=clean_claim,
             verdict="NON VÉRIFIABLE",
             explanation=f"Vérification impossible : {err_msg}",
-            sources=_extract_urls(search_context),
+            sources=_extract_urls(search_context) if search_context and "aucun résultat" not in search_context.lower() else [],
         )
 
     client, err = _get_gemini_client(gemini_client)
     if err or client is None:
         return _fallback_or_verdict(f"Erreur d'initialisation Gemini: {err}")
 
-    model_name = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+    preferred_model = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+    candidates = [preferred_model]
+    if gemini_client is None and "gemini-3.5-flash" not in candidates:
+        candidates.append("gemini-3.5-flash")
+
     prompt = format_synthesis_prompt(clean_claim, search_context)
 
     try:
-        response = client.models.generate_content(
-            model=model_name,
-            contents=[prompt],
-        )
+        response = None
+        last_exc = None
+        for model_name in candidates:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=[prompt],
+                )
+                break
+            except Exception as exc:
+                last_exc = exc
+                logger.warning("Gemini model %s failed (%s), trying next candidate...", model_name, exc)
+
+        if response is None:
+            raise last_exc or RuntimeError("All Gemini model candidates failed.")
+
         raw_text = response.text if hasattr(response, "text") and response.text else ""
         verdict = parse_verdict_response(raw_text, clean_claim)
-        # If no sources were extracted from the LLM response, pull URLs from the search context
-        if not verdict.sources and search_context:
-            verdict.sources = _extract_urls(search_context)
+
+        # Strict RAG URL Whitelisting & Filtering
+        search_urls = _extract_urls(search_context) if search_context else []
+        if not search_context or "aucun résultat" in search_context.lower():
+            # Web search returned nothing -> eliminate hallucinated sources completely
+            verdict.sources = []
+        elif not verdict.sources and search_urls:
+            verdict.sources = search_urls[:3]
+        elif verdict.sources and search_urls:
+            import urllib.parse
+            allowed_domains = {urllib.parse.urlparse(u).netloc.lower() for u in search_urls if urllib.parse.urlparse(u).netloc}
+            valid_sources = []
+            for s in verdict.sources:
+                try:
+                    s_domain = urllib.parse.urlparse(s).netloc.lower()
+                    if s in search_urls or (s_domain and s_domain in allowed_domains):
+                        valid_sources.append(s)
+                except Exception:
+                    pass
+            verdict.sources = valid_sources if valid_sources else search_urls[:3]
+
         return verdict
     except Exception as exc:
         logger.error("Error synthesizing verdict for claim '%s': %s", clean_claim, exc)
