@@ -227,3 +227,14 @@ def test_transcribe_and_extract_client_exception_handling(tmp_path):
     assert result.error is not None
     assert "Quota exceeded" in result.error
     assert result.transcript == ""
+
+
+def test_transcribe_and_extract_unsupported_media_extension(tmp_path):
+    """Test defense-in-depth: non-media files like cookies.txt are rejected immediately."""
+    txt_file = tmp_path / "cookies.txt"
+    txt_file.write_text("sessionid=12345")
+
+    result = transcribe_and_extract(str(txt_file))
+    assert result.error is not None
+    assert "Unsupported media format" in result.error
+

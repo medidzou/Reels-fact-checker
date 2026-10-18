@@ -134,11 +134,17 @@ def search_claim(claim: str, ddgs_client: Optional[Any] = None) -> str:
     try:
         if ddgs_client is None:
             try:
-                from duckduckgo_search import DDGS
-            except ImportError:
                 from ddgs import DDGS
+            except ImportError:
+                import warnings
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*duckduckgo_search.*")
+                    from duckduckgo_search import DDGS
 
-            ddgs_client = DDGS(timeout=4)
+            import warnings
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*duckduckgo_search.*")
+                ddgs_client = DDGS(timeout=4)
 
         raw_results = ddgs_client.text(clean_claim, max_results=3)
         if raw_results:

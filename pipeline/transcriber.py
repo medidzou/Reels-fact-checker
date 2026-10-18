@@ -213,6 +213,15 @@ def transcribe_and_extract(
             error=f"Audio file not found: {audio_path}",
         )
 
+    valid_audio_extensions = (
+        ".flac", ".mp3", ".mp4", ".mpeg", ".mpga", ".m4a", ".ogg", ".opus", ".wav", ".webm", ".aac"
+    )
+    ext = os.path.splitext(audio_path)[1].lower()
+    if ext not in valid_audio_extensions:
+        return TranscriptionResult(
+            error=f"Unsupported media format for transcription: '{ext}' ({audio_path})",
+        )
+
     def _fallback_or_error(err_msg: str) -> TranscriptionResult:
         if os.environ.get("GROQ_API_KEY") or groq_client is not None:
             logger.info("Gemini failed (%s), attempting Groq fallback for transcription...", err_msg)

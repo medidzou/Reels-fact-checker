@@ -165,3 +165,115 @@ def test_download_reel_audio_with_cookie_env(mock_ydl_cls, tmp_path, monkeypatch
     assert "fake_session_123" in cookie_content
     assert "# Netscape" in cookie_content
 
+
+@patch("pipeline.downloader._download_via_embed_scrape")
+@patch("pipeline.downloader.yt_dlp.YoutubeDL")
+def test_download_reel_audio_fallback_embed_scrape(mock_ydl_cls, mock_scrape, tmp_path):
+    """Test that when yt-dlp raises JSONDecodeError, _download_via_embed_scrape is triggered and succeeds."""
+    output_dir = str(tmp_path / "downloads")
+    test_id = "DcwXQKIE3vx"
+    fake_mp3 = tmp_path / "downloads" / f"{test_id}.mp3"
+
+    mock_instance = MagicMock()
+    mock_ydl_cls.return_value.__enter__.return_value = mock_instance
+    mock_instance.extract_info.side_effect = Exception("Failed to parse JSON (caused by JSONDecodeError)")
+
+    def fake_scrape(code, out_dir):
+        fake_mp3.parent.mkdir(parents=True, exist_ok=True)
+        fake_mp3.write_bytes(b"recovered mp3 bytes")
+        return str(fake_mp3)
+
+    mock_scrape.side_effect = fake_scrape
+
+    valid_url = f"https://www.instagram.com/reel/{test_id}/"
+    res = download_reel_audio(valid_url, output_dir)
+
+    assert res.success is True
+    assert res.audio_path == str(fake_mp3)
+    mock_scrape.assert_called_once_with(test_id, output_dir)
+
+
+@patch("pipeline.downloader.yt_dlp.YoutubeDL")
+def test_download_reel_audio_embed_url_candidate_success(mock_ydl_cls, tmp_path):
+    """Test that candidate URLs include embed endpoints and recover audio."""
+    output_dir = str(tmp_path / "downloads")
+    test_id = "DcwXQKIE3vx"
+    fake_mp3 = tmp_path / "downloads" / f"{test_id}.mp3"
+
+    mock_instance = MagicMock()
+    mock_ydl_cls.return_value.__enter__.return_value = mock_instance
+
+    def fake_extract(url, download=True):
+        if "embed" in url:
+            fake_mp3.parent.mkdir(parents=True, exist_ok=True)
+            fake_mp3.write_bytes(b"embed audio")
+            return {"id": test_id}
+        raise Exception("Failed to parse JSON")
+
+    mock_instance.extract_info.side_effect = fake_extract
+
+    valid_url = f"https://www.instagram.com/reel/{test_id}/"
+    res = download_reel_audio(valid_url, output_dir)
+
+    assert res.success is True
+    assert res.audio_path == str(fake_mp3)
+
+
+def test_download_via_embed_scrape_direct(tmp_path):
+    """Test _download_via_embed_scrape scraping and audio extraction."""
+    from pipeline.downloader import _download_via_embed_scrape
+
+    output_dir = str(tmp_path / "downloads")
+    shortcode = "test12345"
+
+    fake_html = '<html><body><video src="https://cdn.instagram.com/o1/test.mp4?sig=123"></video></body></html>'
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.text = fake_html
+    mock_resp.iter_content = MagicMock(return_value=[b"fake mp4 video bytes"])
+    mock_resp.__enter__.return_value = mock_resp
+    mock_resp.__exit__.return_value = None
+
+    with patch("curl_cffi.requests.get", return_value=mock_resp), \
+         patch("subprocess.run") as mock_subproc:
+
+        # Simulate ffmpeg creating the mp3 file
+        def fake_ffmpeg(cmd, **kwargs):
+            target = cmd[-1]
+            with open(target, "wb") as f:
+                f.write(b"fake mp3 audio bytes")
+            res = MagicMock()
+            res.returncode = 0
+            return res
+
+        mock_subproc.side_effect = fake_ffmpeg
+
+        result_path = _download_via_embed_scrape(shortcode, output_dir)
+        assert result_path is not None
+        assert os.path.exists(result_path)
+        assert result_path.endswith(f"{shortcode}.mp3")
+
+
+@patch("pipeline.downloader._download_via_embed_scrape", return_value=None)
+@patch("pipeline.downloader.yt_dlp.YoutubeDL")
+def test_download_reel_audio_ignores_non_media_files(mock_ydl_cls, mock_scrape, tmp_path):
+    """Test that non-media files like cookies.txt or log files in output_dir are ignored."""
+    output_dir = str(tmp_path / "downloads")
+    os.makedirs(output_dir, exist_ok=True)
+    cookies_file = tmp_path / "downloads" / "cookies.txt"
+    cookies_file.write_text("sessionid=abc12345")
+
+    mock_instance = MagicMock()
+    mock_ydl_cls.return_value.__enter__.return_value = mock_instance
+    mock_instance.extract_info.side_effect = Exception("Failed to parse JSON (caused by JSONDecodeError)")
+
+    valid_url = "https://www.instagram.com/reel/DcwXQKIE3vx/"
+    res = download_reel_audio(valid_url, output_dir)
+
+    assert res.success is False
+    assert res.audio_path is None
+
+
+
+

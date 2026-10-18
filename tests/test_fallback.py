@@ -239,3 +239,17 @@ SOURCES:
     assert "https://groq-source.com" in verdict.sources
     mock_gemini_client.models.generate_content.assert_called_once()
     mock_groq_client.chat.completions.create.assert_called_once()
+
+
+def test_groq_transcribe_unsupported_audio_format(tmp_path):
+    """Verify Groq Whisper rejects non-audio files (like cookies.txt) with a clean error."""
+    txt_file = tmp_path / "cookies.txt"
+    txt_file.write_text("sessionid=fake123")
+
+    mock_groq = MagicMock()
+    result = groq_transcribe(str(txt_file), client=mock_groq)
+
+    assert result.error is not None
+    assert "Unsupported audio format" in result.error
+    mock_groq.audio.transcriptions.create.assert_not_called()
+

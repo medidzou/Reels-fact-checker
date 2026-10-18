@@ -117,13 +117,22 @@ def groq_transcribe(
     whisper_model = os.environ.get("GROQ_WHISPER_MODEL", DEFAULT_GROQ_WHISPER_MODEL)
     llm_model = os.environ.get("GROQ_LLM_MODEL", DEFAULT_GROQ_LLM_MODEL)
 
+    valid_groq_extensions = (
+        ".flac", ".mp3", ".mp4", ".mpeg", ".mpga", ".m4a", ".ogg", ".opus", ".wav", ".webm"
+    )
+    ext = os.path.splitext(audio_path)[1].lower()
+    if ext not in valid_groq_extensions:
+        return TranscriptionResult(
+            error=f"Unsupported audio format for Groq Whisper: '{ext}' ({audio_path})"
+        )
+
     try:
         # 1. Transcribe audio using Whisper
         logger.info("Transcribing audio %s with Groq Whisper model %s...", audio_path, whisper_model)
         with open(audio_path, "rb") as f:
             transcription = groq_client.audio.transcriptions.create(
                 model=whisper_model,
-                file=f,
+                file=(os.path.basename(audio_path), f.read()),
             )
         raw_transcript = getattr(transcription, "text", "") or ""
     except Exception as exc:
