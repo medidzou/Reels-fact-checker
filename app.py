@@ -253,6 +253,7 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
         return jsonify({"job_id": job_id, "status": "processing"}), 202
 
     @app.route("/api/check-upload", methods=["POST"])
+    @app.route("/api/check-file", methods=["POST"])
     def api_check_upload():
         """Validate uploaded video/audio file and enqueue async processing job."""
         client_ip = _get_client_ip()
@@ -303,17 +304,25 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
         return jsonify({"job_id": job_id, "status": "processing"}), 202
 
     @app.route("/api/status/<job_id>", methods=["GET"])
+    @app.route("/api/jobs/<job_id>", methods=["GET"])
     def api_job_status(job_id: str):
         """Retrieve real-time status and stage of an async processing job."""
         job = job_manager.get_job(job_id)
         if not job:
             return jsonify({"error": f"Job '{job_id}' non trouvé"}), 404
 
+        result_payload = job.get("result")
+        report_id = None
+        if isinstance(result_payload, dict):
+            report_id = result_payload.get("report_id")
+
         return jsonify({
             "job_id": job["job_id"],
             "status": job["status"],
             "stage": job["stage"],
-            "result": job.get("result"),
+            "result": result_payload,
+            "report": result_payload,
+            "report_id": report_id,
             "error": job.get("error"),
         }), 200
 

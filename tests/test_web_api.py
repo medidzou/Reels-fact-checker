@@ -72,15 +72,34 @@ def test_get_job_status_not_found(client):
 
 
 def test_get_job_status_existing(client):
-    """Test GET /api/status/<job_id> retrieves job status."""
+    """Test GET /api/status/<job_id> and /api/jobs/<job_id> retrieve job status and report payload."""
     from app import job_manager
     job_id = job_manager.create_job(initial_stage="downloading")
-    res = client.get(f"/api/status/{job_id}")
-    assert res.status_code == 200
-    data = res.get_json()
-    assert data["job_id"] == job_id
-    assert data["status"] == "processing"
-    assert data["stage"] == "downloading"
+    job_manager.update_job(
+        job_id,
+        status="completed",
+        stage="completed",
+        result={"summary": "Fact-checked", "score": 8.5, "is_tech": False},
+    )
+
+    # Test canonical /api/status/<job_id>
+    res1 = client.get(f"/api/status/{job_id}")
+    assert res1.status_code == 200
+    data1 = res1.get_json()
+    assert data1["job_id"] == job_id
+    assert data1["status"] == "completed"
+    assert data1["stage"] == "completed"
+    assert data1["result"]["summary"] == "Fact-checked"
+    assert data1["report"]["summary"] == "Fact-checked"
+    assert "report_id" in data1
+
+    # Test alias /api/jobs/<job_id> used by web frontend
+    res2 = client.get(f"/api/jobs/{job_id}")
+    assert res2.status_code == 200
+    data2 = res2.get_json()
+    assert data2["job_id"] == job_id
+    assert data2["report"]["score"] == 8.5
+    assert data2["report_id"] == data1["report_id"]
 
 
 def test_security_headers_present(client):
@@ -125,6 +144,20 @@ def test_check_upload_valid(client, monkeypatch):
         "file": (valid_file, "reel_sample.mp4")
     }
     res = client.post("/api/check-upload", data=data, content_type="multipart/form-data")
+    assert res.status_code == 202
+    res_data = res.get_json()
+    assert "job_id" in res_data
+    assert res_data["status"] == "processing"
+
+
+def test_check_file_alias_valid(client, monkeypatch):
+    """Test POST /api/check-file creates job with valid media file (frontend alias)."""
+    monkeypatch.setattr("job_manager.JobManager.run_job", lambda self, *a, **k: None)
+    valid_file = io.BytesIO(b"mock video data")
+    data = {
+        "file": (valid_file, "reel_sample.mp4")
+    }
+    res = client.post("/api/check-file", data=data, content_type="multipart/form-data")
     assert res.status_code == 202
     res_data = res.get_json()
     assert "job_id" in res_data

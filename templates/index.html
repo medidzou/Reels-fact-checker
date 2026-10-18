@@ -754,7 +754,7 @@
         formData.append('file', fileInput.files[0]);
 
         try {
-          const res = await fetch('/api/check-file', {
+          const res = await fetch('/api/check-upload', {
             method: 'POST',
             body: formData
           });
@@ -788,24 +788,43 @@
 
       function pollJobStatus(jobId) {
         if (pollInterval) clearInterval(pollInterval);
+        let failureCount = 0;
 
         pollInterval = setInterval(async () => {
           try {
-            const res = await fetch(`/api/jobs/${jobId}`);
-            if (!res.ok) return;
+            const res = await fetch(`/api/status/${jobId}`);
+            if (!res.ok) {
+              failureCount++;
+              if (failureCount >= 8) {
+                clearInterval(pollInterval);
+                handleSubmissionError("Impossible de récupérer l'état du traitement (serveur temporairement indisponible).");
+              }
+              return;
+            }
+            failureCount = 0;
             const job = await res.json();
 
             updateStageUI(job.stage);
 
             if (job.status === 'completed') {
               clearInterval(pollInterval);
-              renderReportCard(job.report, job.report_id);
+              const reportData = job.report || job.result;
+              const repId = job.report_id || (reportData && reportData.report_id);
+              if (reportData) {
+                renderReportCard(reportData, repId);
+              } else {
+                handleSubmissionError("Rapport d'analyse non disponible.");
+              }
             } else if (job.status === 'failed') {
               clearInterval(pollInterval);
               handleSubmissionError(job.error || "Échec de la vérification.");
             }
           } catch (err) {
-            // Re-polling continues
+            failureCount++;
+            if (failureCount >= 8) {
+              clearInterval(pollInterval);
+              handleSubmissionError("Erreur réseau lors du suivi de l'analyse.");
+            }
           }
         }, 1500);
       }
@@ -863,8 +882,12 @@
 
       // Render Report Card
       function renderReportCard(report, reportId) {
+        if (!report) {
+          handleSubmissionError("Rapport non disponible.");
+          return;
+        }
         currentReport = report;
-        currentReportId = reportId || report.report_id || null;
+        currentReportId = reportId || (report && report.report_id) || null;
 
         const techSection = document.getElementById('tech-audit-section');
 
